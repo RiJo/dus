@@ -74,6 +74,9 @@ namespace fs {
         // TODO: define if read/write/execute is evaluated, currently read is hardcoded
         // TODO: make distinction between file and directory type in evaluation
 
+        if (type != fs::file_type::directory)
+            return true; // We're always allowed to read file sizes but have problems with directories
+
         if (mode & 0x04)
             return true;
 
