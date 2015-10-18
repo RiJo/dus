@@ -130,7 +130,7 @@ int main(int argc, const char *argv[]) {
         return 2;
     }
 
-    // Find highest value (ised for percentage)
+    // Find highest value (used for percentage)
     double total_length {0.0};
     for (const auto &file: files)
         total_length += file.length;
@@ -139,6 +139,11 @@ int main(int argc, const char *argv[]) {
     for (auto file: files) {
         if (count == 0)
             break;
+
+        if (!file.authorized) {
+            std::cerr << "!" << file.name << std::endl;
+            continue;
+        }
 
         std::string row_data {""};
 
@@ -177,9 +182,9 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         // Progress bar
-        int chars_left {cols - row_data.length()};
-        int progress_width {chars_left - 4 /* last 4 chars for "xxx%" */};
-        int bar_width {(progress_width - 3) * (file.length / total_length)};
+        int chars_left = cols - row_data.length();
+        int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
+        int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
         row_data += std::string(bar_width, '=');
         row_data += "|";

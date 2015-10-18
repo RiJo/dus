@@ -19,6 +19,7 @@ namespace fs {
     };
 
     struct file_info {
+        bool authorized;
         bool exists;
         fs::file_type type;
         std::string path;
@@ -69,8 +70,29 @@ namespace fs {
         return current_working_directory() + '/' + path;
     }
 
+    bool is_authorized(fs::file_type type, int mode, int uid, int gid) {
+        // TODO: define if read/write/execute is evaluated, currently read is hardcoded
+        // TODO: make distinction between file and directory type in evaluation
+
+        if (mode & 0x04)
+            return true;
+
+        bool gid_match = (gid == getgid());
+        if (gid_match)
+            if ((mode << 8) & 0x04)
+                return true;
+
+        bool uid_match = (uid == getuid());
+        if (uid_match)
+            if ((mode << 16) & 0x04)
+                return true;
+
+        return false;
+    }
+
     fs::file_info read_file(const std::string &path) {
         fs::file_info fi;
+        fi.authorized = false;
         fi.path = fs::dirname(path);
         fi.name = fs::basename(path);
 
@@ -127,6 +149,7 @@ namespace fs {
                 break;
         }
 
+        fi.authorized = fs::is_authorized(fi.type, sb.st_mode, sb.st_uid, sb.st_gid);
         return fi;
     }
 
@@ -160,8 +183,11 @@ namespace fs {
             fs::file_info fi = read_file(path + '/' + filename);
 
             if (calculate_directory_length && fi.type == fs::file_type::directory) {
-                for (const auto &sub: read_directory(path + '/' + filename, true))
+                for (const auto &sub: read_directory(path + '/' + filename, true)) {
+                    if (!sub.authorized)
+                        fi.authorized = false;
                     fi.length += sub.length;
+                }
             }
 
             contents.push_back(std::move(fi));
