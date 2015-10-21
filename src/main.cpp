@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include <algorithm>
 #include <future>
 #include <math.h>
@@ -18,7 +19,7 @@
 */
 
 void usage(const char *application) {
-    std::cout << "usage: " << application << " [-c <count>] [-h] [-o] [-s <size|name>] [<target directory>]" << std::endl;
+    std::cout << "usage: " << application << " [-c <count>] [-h] [-s <size|name>] [<target directory>]" << std::endl;
     std::cout << std::endl;
     std::cout << "Dump ordered summary list of the given directory. If no target directory is given the current working directory is used." << std::endl;
     std::cout << std::endl;
@@ -57,7 +58,7 @@ int main(int argc, const char *argv[]) {
             count = std::atoi(argv[i + 1]);
             i++;
         }
-        else if (arg == "-o" && i < argc) {
+        else if (arg == "-s" && i < argc) {
             order_by = std::string(argv[i + 1]);
             i++;
         }
@@ -114,21 +115,16 @@ int main(int argc, const char *argv[]) {
     }
     std::vector<fs::file_info> files { future.get() };
 
-    // TODO: make following more generic: map<string, cmp>? Could also be used in help (usage) printout
-    // Sort data items
-    if (order_by == "size") {
-        auto cmp = [order_inverted] (fs::file_info first, fs::file_info second) { return order_inverted ? first.length < second.length : first.length > second.length; };
-        std::sort(files.begin(), files.end(), cmp);
-    }
-    else if (order_by == "name") {
-        // TODO: implement comparator
-        auto cmp = [order_inverted] (fs::file_info first, fs::file_info second) { return order_inverted ? first.name > second.name : first.name < second.name; };
-        std::sort(files.begin(), files.end(), cmp);
-    }
-    else {
-        std::cerr << "Unknown sort type: \"" << order_by << "\"" << std::endl;
+    // Sort contents
+    // TODO: use keys in usage printout as available values of '-s'
+    std::map<std::string, std::function<bool (const fs::file_info &, const fs::file_info &)>> comparators;
+    comparators["size"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
+    comparators["name"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.name > second.name : first.name < second.name; };
+    if (!comparators.count(order_by)) {
+        std::cerr << "Undefined sort type: \"" << order_by << "\"" << std::endl;
         return 2;
     }
+    std::sort(files.begin(), files.end(), comparators[order_by]);
 
     // Find highest value (used for percentage)
     double total_length {0.0};
