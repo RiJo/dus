@@ -65,8 +65,9 @@ int main(int argc, const char *argv[]) {
         else if (i == argc - 1 && argv[argc - 1][0] != '-') {
             target = fs::absolute_path(argv[argc - 1]);
         }
-        else
+        else {
             std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
+        }
     }
 
     // Parse target
@@ -117,6 +118,7 @@ int main(int argc, const char *argv[]) {
 
     // Sort contents
     // TODO: use keys in usage printout as available values of '-s'
+    // TODO: implement natural sort order for strings. Optional or hardcoded?
     std::map<std::string, std::function<bool (const fs::file_info &, const fs::file_info &)>> comparators;
     comparators["size"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
     comparators["name"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.name > second.name : first.name < second.name; };
