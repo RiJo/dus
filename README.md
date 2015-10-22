@@ -1,7 +1,7 @@
 dus
 ===
 
-Dump sorted summary list of the current/given directory. Ability to order the result, ascending or descending, based on by name or size.
+Console tool which list the contents of the current/given directory as graphs based on file sizes. Ability to order the result, ascending or descending, based on name or size.
 
 ### Status
 Currently in development of first beta version. Current code base works as intended.
@@ -16,7 +16,7 @@ I was missing a command line tool which simply summarized the current directory'
 Everything is written in C++14. There are currently two dependencies which are required to be linked in: libpthread and libcurses.
 
 ### Compile
-g++ --std=c++14 -pthread -lcurses src/main.cpp
+g++ --std=c++14 -lpthread -lcurses src/main.cpp -o dus
 
 ## License
 This project is licensed under GPLv3.
