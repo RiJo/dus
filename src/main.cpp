@@ -21,14 +21,15 @@
 void usage(const char *application) {
     std::cout << "usage: " << application << " [-c <count>] [-h] [-s <size|name>] [<target directory>]" << std::endl;
     std::cout << std::endl;
-    std::cout << "Dump ordered summary list of the given directory. If no target directory is given the current working directory is used." << std::endl;
+    std::cout << "List the contents of the current/given directory as graphs based on file sizes. If no target directory is given the current working directory is used." << std::endl;
     std::cout << std::endl;
     std::cout << "  -c       Number of items to printout. Default is infinite (-1)." << std::endl;
     std::cout << "  -h       Print human readable sizes (e.g., 1K 234M 2G)." << std::endl;
     std::cout << "  -i       Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
     std::cout << "  -s       Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
-
     std::cout << "  --help   Print this help and exit." << std::endl;
+    std::cout << std::endl;
+    std::cout << "                  by Rikard Johansson, 2015. Licensed under GPLv3." << std::endl;
 }
 
 template<typename T> constexpr T ce_pow(const T value, const int power) {
