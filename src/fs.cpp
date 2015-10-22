@@ -31,6 +31,12 @@ namespace fs {
         //~ }
     };
 
+    enum permission_flag {
+        read = 0x04,
+        write = 0x02,
+        execute = 0x01,
+    };
+
     std::string dirname(const std::string &path) {
         std::size_t found { path.find_last_of("/\\") };
         if (found == std::string::npos)
@@ -70,24 +76,18 @@ namespace fs {
         return current_working_directory() + '/' + path;
     }
 
-    bool is_authorized(fs::file_type type, int mode, int uid, int gid) {
-        // TODO: define if read/write/execute is evaluated, currently read is hardcoded
-        // TODO: make distinction between file and directory type in evaluation
-
-        if (type != fs::file_type::directory)
-            return true; // We're always allowed to read file sizes but have problems with directories
-
-        if (mode & 0x04)
+    bool is_authorized(fs::file_type type, int mode, int uid, int gid, fs::permission_flag evaluation) {
+        if (mode & evaluation)
             return true;
 
         bool gid_match = (gid == getgid());
         if (gid_match)
-            if ((mode << 8) & 0x04)
+            if ((mode >> 8) & evaluation)
                 return true;
 
         bool uid_match = (uid == getuid());
         if (uid_match)
-            if ((mode << 16) & 0x04)
+            if ((mode >> 16) & evaluation)
                 return true;
 
         return false;
@@ -152,7 +152,10 @@ namespace fs {
                 break;
         }
 
-        fi.authorized = fs::is_authorized(fi.type, sb.st_mode, sb.st_uid, sb.st_gid);
+        if (fi.type == fs::file_type::directory)
+            fi.authorized = fs::is_authorized(fi.type, sb.st_mode, sb.st_uid, sb.st_gid, fs::permission_flag::read);
+        else
+            fi.authorized = true;
         return fi;
     }
 
