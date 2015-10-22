@@ -89,30 +89,19 @@ int main(int argc, const char *argv[]) {
         rows = render.rows;
 
         std::future_status status;
-        char chr {'-'};
+        const std::string spinner = R"(-\|/)";
+        const int spinner_chars = spinner.length();
+        int spin_char = 0;
+        char chr {spinner[spin_char]};
         do {
             // TODO: implement timeout handling (-t to define?)
             status = future.wait_for(std::chrono::milliseconds(50));
             if (status == std::future_status::ready)
                 break;
 
-            switch (chr) {
-                case '-':
-                    chr = '\\';
-                    break;
-                case '\\':
-                    chr = '|';
-                    break;
-                case '|':
-                    chr = '/';
-                    break;
-                case '/':
-                    chr = '-';
-                    break;
-                default:
-                    chr = '?';
-                    break;
-            }
+            // Render spinner
+            chr = spinner[spin_char];
+            spin_char = (spin_char + 1) % spinner_chars;
             render.write(0, 0, chr);
         } while (true /*status != std::future_status::ready*/);
     }
