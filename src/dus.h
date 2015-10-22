@@ -1,0 +1,8 @@
+#ifndef __DUS_H_INCLUDED__
+#define __DUS_H_INCLUDED__
+
+#define PROGRAM_VERSION_MAJOR 0
+#define PROGRAM_VERSION_MINOR 0
+#define PROGRAM_VERSION_BUILD 1
+
+#endif //__DUS_H_INCLUDED__

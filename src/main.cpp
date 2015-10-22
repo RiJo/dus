@@ -1,3 +1,4 @@
+#include "dus.h"
 #include "fs.cpp"
 #include "console.cpp"
 
