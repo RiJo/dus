@@ -19,18 +19,23 @@
         - Add support for cin: read target directory/directories from stdin
 */
 
-void usage(const char *application) {
-    std::cout << "usage: " << application << " [-c <count>] [-h] [-s <size|name>] [<target directory>]" << std::endl;
+void print_usage(const std::string &application) {
+    std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [-s <size|name>] [<target directory>]" << std::endl;
     std::cout << std::endl;
     std::cout << "List the contents of the current/given directory as graphs based on file sizes. If no target directory is given the current working directory is used." << std::endl;
     std::cout << std::endl;
-    std::cout << "  -c       Number of items to printout. Default is infinite (-1)." << std::endl;
-    std::cout << "  -h       Print human readable sizes (e.g., 1K 234M 2G)." << std::endl;
-    std::cout << "  -i       Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
-    std::cout << "  -s       Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
-    std::cout << "  --help   Print this help and exit." << std::endl;
+    std::cout << "  -c          Number of items to printout. Default is infinite (-1)." << std::endl;
+    std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 2G)." << std::endl;
+    std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
+    std::cout << "  -s          Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
+    std::cout << "  --help      Print this help and exit." << std::endl;
+    std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
-    std::cout << "                  by Rikard Johansson, 2015. Licensed under GPLv3." << std::endl;
+    std::cout << "                  by Rikard Johansson, 2015. Licensed under " PROGRAM_LICENSE "." << std::endl;
+}
+
+void print_version(const std::string &application) {
+    std::cout << PROGRAM_NAME << " v" PROGRAM_VERSION ", built " __DATE__ " " __TIME__ "." << std::endl;
 }
 
 template<typename T> constexpr T ce_pow(const T value, const int power) {
@@ -47,7 +52,11 @@ int main(int argc, const char *argv[]) {
     for (int i = 1; i < argc; i++) {
         std::string arg = std::string(argv[i]);
         if (arg == "--help") {
-            usage(argv[0]);
+            print_usage(fs::basename(std::string(argv[0])));
+            return 0;
+        }
+        else if (arg == "--version" || arg == "-v") {
+            print_version(fs::basename(std::string(argv[0])));
             return 0;
         }
         else if (arg == "-h") {
