@@ -1,3 +1,6 @@
+#ifndef __CONSOLE_HPP_INCLUDED__
+#define __CONSOLE_HPP_INCLUDED__
+
 #include <stdexcept>
 #include <curses.h>
 
@@ -45,3 +48,5 @@ class console {
             refresh();
         }
 };
+
+#endif //__CONSOLE_HPP_INCLUDED__

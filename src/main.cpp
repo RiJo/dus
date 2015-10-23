@@ -1,6 +1,6 @@
 #include "dus.hpp"
 #include "fs.cpp"
-#include "console.cpp"
+#include "console.hpp"
 
 #include <iostream>
 #include <string>
