@@ -16,7 +16,6 @@
         - Add ctrl-c listener for termination
         - Howto summarize if permission is denied to some paths?
         - -t to define on how many levels threads should be forked for each directory
-        - Independent order of arguments: flags vs. target directory (currently required last)
         - Add support for cin: read target directory/directories from stdin
 */
 
@@ -132,11 +131,16 @@ int main(int argc, const char *argv[]) {
             timeout_ms = std::atoi(argv[i + 1]);
             i++;
         }
-        else if (i == argc - 1 && argv[argc - 1][0] != '-') {
-            target = fs::absolute_path(argv[argc - 1]);
-        }
         else {
-            std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
+            std::string potential_target = fs::absolute_path(arg);
+            if (fs::exists(potential_target)) {
+                if (target.length() == 0)
+                    target = potential_target;
+                else
+                    std::cerr << "Target already defined as \"" << target << "\", ignoring \"" << arg << "\"" << std::endl;
+            }
+            else
+                std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
         }
     }
 
