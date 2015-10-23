@@ -1,3 +1,6 @@
+#ifndef __FS_HPP_INCLUDED__
+#define __FS_HPP_INCLUDED__
+
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -203,3 +206,4 @@ namespace fs {
     }
 }
 
+#endif //__FS_HPP_INCLUDED__

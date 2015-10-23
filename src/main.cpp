@@ -1,5 +1,5 @@
 #include "dus.hpp"
-#include "fs.cpp"
+#include "fs.hpp"
 #include "console.hpp"
 
 #include <iostream>
