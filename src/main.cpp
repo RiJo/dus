@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <future>
 #include <math.h>
+#include <chrono>
 
 /*
     TODO:
@@ -20,15 +21,16 @@
 */
 
 void print_usage(const std::string &application) {
-    std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [-s <size|name>] [<target directory>]" << std::endl;
+    std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [i] [-n] [-s <size|name>] [-t <milliseconds>] [<target directory>]" << std::endl;
     std::cout << std::endl;
     std::cout << "List the contents of the current/given directory as graphs based on file sizes. If no target directory is given the current working directory is used." << std::endl;
     std::cout << std::endl;
-    std::cout << "  -c          Number of items to printout. Default is infinite (-1)." << std::endl;
-    std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 2G)." << std::endl;
+    std::cout << "  -c <items>  Number of items to printout. Default is infinite (-1)." << std::endl;
+    std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
-    std::cout << "  -n          Natural sort order if sort order is a string representation. Default is false." << std::endl;
-    std::cout << "  -s          Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
+    std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
+    std::cout << "  -s <...>    Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
+    std::cout << "  -t <ms>     Directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
     std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
@@ -98,6 +100,7 @@ int main(int argc, const char *argv[]) {
     std::string order_by {"size"};
     bool human_readable {false};
     bool natural_order {false};
+    int timeout_ms {-1};
     for (int i = 1; i < argc; i++) {
         std::string arg = std::string(argv[i]);
         if (arg == "--help") {
@@ -108,6 +111,10 @@ int main(int argc, const char *argv[]) {
             print_version(fs::basename(std::string(argv[0])));
             return 0;
         }
+        else if (arg == "-c" && i < argc) {
+            count = std::atoi(argv[i + 1]);
+            i++;
+        }
         else if (arg == "-h") {
             human_readable = true;
         }
@@ -117,12 +124,12 @@ int main(int argc, const char *argv[]) {
         else if (arg == "-n") {
             natural_order = true;
         }
-        else if (arg == "-c" && i < argc) {
-            count = std::atoi(argv[i + 1]);
-            i++;
-        }
         else if (arg == "-s" && i < argc) {
             order_by = std::string(argv[i + 1]);
+            i++;
+        }
+        else if (arg == "-t" && i < argc) {
+            timeout_ms = std::atoi(argv[i + 1]);
             i++;
         }
         else if (i == argc - 1 && argv[argc - 1][0] != '-') {
@@ -143,6 +150,7 @@ int main(int argc, const char *argv[]) {
 
     // Read directory contents asynchronously (and render loading progress indicator)
     std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [target] { return fs::read_directory(target, true); });
+    bool timeout = false;
     int rows, cols;
     {
         console render;
@@ -154,8 +162,8 @@ int main(int argc, const char *argv[]) {
         const int spinner_chars = spinner.length();
         int spin_char = 0;
         char chr {spinner[spin_char]};
+        auto start_time = std::chrono::system_clock::now();
         do {
-            // TODO: implement timeout handling (-t to define?)
             status = future.wait_for(std::chrono::milliseconds(50));
             if (status == std::future_status::ready)
                 break;
@@ -164,8 +172,20 @@ int main(int argc, const char *argv[]) {
             chr = spinner[spin_char];
             spin_char = (spin_char + 1) % spinner_chars;
             render.write(0, 0, chr);
+
+            // Check timeout
+            if (timeout_ms > 0 && std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::system_clock::now() - start_time).count() > timeout_ms) {
+                timeout = true;
+                break;
+            }
         } while (true /*status != std::future_status::ready*/);
     }
+
+    if (timeout) {
+        std::cerr << "Timeout after " << timeout_ms << "ms" << std::endl;
+        exit(3); // TODO: properly terminate std::future<>, we'd like to call 'return X' here.
+    }
+
     std::vector<fs::file_info> files { future.get() };
 
     // Sort contents
