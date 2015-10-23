@@ -27,11 +27,59 @@ void print_usage(const std::string &application) {
     std::cout << "  -c          Number of items to printout. Default is infinite (-1)." << std::endl;
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 2G)." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
+    std::cout << "  -n          Natural sort order if sort order is a string representation. Default is false." << std::endl;
     std::cout << "  -s          Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
     std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
     std::cout << "                  by Rikard Johansson, 2015. Licensed under " PROGRAM_LICENSE "." << std::endl;
+}
+
+int cmp_natural_order(const std::string &str1, const std::string &str2) {
+    if (str1 == str2)
+        return 0;
+
+    for (int i = 0; i < str1.length() < str2.length() ? str1.length() : str2.length(); i++) {
+        bool numeric_compare = (str1[i] >= '0' && str1[i] <= '9' && str2[i] >= '0' && str2[i] <= '9');
+        if (numeric_compare) {
+            std::string str1_numeric = "";
+            for (int j = i; j < str1.length(); j++) {
+                if (str1[j] < '0' || str1[j] > '9')
+                    break;
+                str1_numeric += str1[j];
+            }
+
+            std::string str2_numeric = "";
+            for (int j = i; j < str2.length(); j++) {
+                if (str2[j] < '0' || str2[j] > '9')
+                    break;
+                str2_numeric += str2[j];
+            }
+
+            int val1 = std::stoi(str1_numeric);
+            int val2 = std::stoi(str2_numeric);
+            if (val1 > val2)
+                return 1;
+            else if (val1 < val2)
+                return -1;
+            else
+                continue;
+        }
+        else {
+            if (str1[i] == str2[i])
+                continue;
+
+            if (str1[i] > str2[i])
+                return 1;
+            else
+                return -1;
+        }
+    }
+
+    if (str1.length() > str2.length())
+        return 1;
+    else
+        return -1;
 }
 
 void print_version(const std::string &application) {
@@ -49,6 +97,7 @@ int main(int argc, const char *argv[]) {
     bool order_inverted {false};
     std::string order_by {"size"};
     bool human_readable {false};
+    bool natural_order {false};
     for (int i = 1; i < argc; i++) {
         std::string arg = std::string(argv[i]);
         if (arg == "--help") {
@@ -64,6 +113,9 @@ int main(int argc, const char *argv[]) {
         }
         else if (arg == "-i") {
             order_inverted = !order_inverted;
+        }
+        else if (arg == "-n") {
+            natural_order = true;
         }
         else if (arg == "-c" && i < argc) {
             count = std::atoi(argv[i + 1]);
@@ -118,10 +170,13 @@ int main(int argc, const char *argv[]) {
 
     // Sort contents
     // TODO: use keys in usage printout as available values of '-s'
-    // TODO: implement natural sort order for strings. Optional or hardcoded?
     std::map<std::string, std::function<bool (const fs::file_info &, const fs::file_info &)>> comparators;
     comparators["size"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
-    comparators["name"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.name > second.name : first.name < second.name; };
+    comparators["name"] = [order_inverted, natural_order] (const fs::file_info &first, const fs::file_info &second) {
+        if (natural_order)
+            return order_inverted ? cmp_natural_order(first.name, second.name) > 0 : cmp_natural_order(first.name, second.name) < 0;
+        return order_inverted ? first.name > second.name : first.name < second.name;
+    };
     if (!comparators.count(order_by)) {
         std::cerr << "Undefined sort type: \"" << order_by << "\"" << std::endl;
         return 2;
