@@ -213,7 +213,7 @@ int main(int argc, const char *argv[]) {
         total_length += file.length;
 
     // Dump result
-    for (auto file: files) {
+    for (auto const &file: files) {
         if (count == 0)
             break;
 
