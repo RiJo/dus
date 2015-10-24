@@ -91,6 +91,27 @@ template<typename T> constexpr T ce_pow(const T value, const int power) {
     return (power > 1) ? value * ce_pow(value, power - 1) : (power == 1) ? value : (power == 0) ? 0 : throw std::runtime_error("Power cannot be negative: " + std::to_string(power));
 }
 
+int strlen_utf8(const std::string &str)
+{
+    int length = 0;
+    for (int i = 0; i < str.length(); i++)
+    {
+        unsigned char c = str[i];
+        if (c > 127) {
+            if ((c & 0xE0) == 0xC0)
+                i += 1;
+            else if ((c & 0xF0) == 0xE0)
+                i += 2;
+            else if ((c & 0xF8) == 0xF0)
+                i += 3;
+            else
+                return 0; // Invalid UTF-8
+        }
+        length++;
+    }
+    return length;
+}
+
 int main(int argc, const char *argv[]) {
     // Parse arguments
     std::string target;
@@ -236,14 +257,12 @@ int main(int argc, const char *argv[]) {
             row_data += " ";
 
         // Filename
-        //~ std::wstring foo(file.name.begin(), file.name.end());
-        //~ std::wcout << "wstring: \"" << foo << "\", length: " << foo.length() << ", std::wcslen: " << std::wcslen(foo) << std::endl;
-        // TODO: doesn't calculate correct width if åäöÅÄÖ is used in filename: use wstring instead of string?
         const int name_width {35};
-        if (file.name.length() >= name_width - 2)
+        int file_name_length = strlen_utf8(file.name);
+        if (file_name_length >= name_width - 2)
             row_data += file.name.substr(0, name_width - 2) + "..";
         else
-            row_data += file.name + std::string(name_width - file.name.length(), ' ');
+            row_data += file.name + std::string(name_width - file_name_length, ' ');
         row_data += " ";
 
         // File size
@@ -264,7 +283,7 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         // Progress bar
-        int chars_left = cols - row_data.length();
+        int chars_left = cols - strlen_utf8(row_data);
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
