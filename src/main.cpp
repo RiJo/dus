@@ -15,21 +15,21 @@
     TODO:
         - Add ctrl-c listener for termination
         - Howto summarize if permission is denied to some paths?
-        - -t to define on how many levels threads should be forked for each directory
-        - Add support for cin: read target directory/directories from stdin
+        - -j (jobs) to define on how many levels threads should be forked for each directory
+        - Add support for cin: read target files/directories from stdin
 */
 
 void print_usage(const std::string &application) {
-    std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [i] [-n] [-s <size|name>] [-t <milliseconds>] [<target directory>]" << std::endl;
+    std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [i] [-n] [-s <size|name>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
     std::cout << std::endl;
-    std::cout << "List the contents of the current/given directory as graphs based on file sizes. If no target directory is given the current working directory is used." << std::endl;
+    std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
     std::cout << std::endl;
     std::cout << "  -c <items>  Number of items to printout. Default is infinite (-1)." << std::endl;
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
     std::cout << "  -s <...>    Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
-    std::cout << "  -t <ms>     Directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
+    std::cout << "  -t <ms>     File/directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
     std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
@@ -147,13 +147,18 @@ int main(int argc, const char *argv[]) {
     // Parse target
     if (target.length() == 0)
         target = fs::current_working_directory();
-    if (!fs::is_type<fs::file_type::directory>(target)) {
-        std::cerr << "Directory not found: " << target << std::endl;
+    if (!fs::is_type<fs::file_type::directory>(target) && !fs::is_type<fs::file_type::file>(target)) {
+        std::cerr << "File or directory not found: " << target << std::endl;
         return 1;
     }
 
-    // Read directory contents asynchronously (and render loading progress indicator)
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [target] { return fs::read_directory(target, true); });
+    // Read file/directory contents asynchronously (and render loading progress indicator)
+    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [target] {
+        if (fs::is_type<fs::file_type::directory>(target))
+            return fs::read_directory(target, true);
+        else
+            return std::vector<fs::file_info> {fs::read_file(target)};
+    });
     bool timeout = false;
     int rows, cols;
     {
