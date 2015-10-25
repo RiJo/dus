@@ -27,6 +27,9 @@ namespace fs {
         fs::file_type type;
         std::string path;
         std::string name;
+        int mode;
+        int uid;
+        int gid;
         unsigned int length;
 
         //~ std::ostream& operator<<(std::ostream& os, const struct file_info fi) {
@@ -79,18 +82,18 @@ namespace fs {
         return current_working_directory() + '/' + path;
     }
 
-    bool is_authorized(fs::file_type type, int mode, int uid, int gid, fs::permission_flag evaluation) {
-        if (mode & evaluation)
+    bool is_authorized(fs::file_info file, fs::permission_flag evaluation) {
+        if (((file.mode & 0x07) & evaluation) == evaluation)
             return true;
 
-        bool gid_match = (gid == getgid());
+        bool gid_match = (file.gid == getgid());
         if (gid_match)
-            if ((mode >> 8) & evaluation)
+            if ((((file.mode >> 3) & 0x07) & evaluation) == evaluation)
                 return true;
 
-        bool uid_match = (uid == getuid());
+        bool uid_match = (file.uid == getuid());
         if (uid_match)
-            if ((mode >> 16) & evaluation)
+            if ((((file.mode >> 6) & 0x07) & evaluation) == evaluation)
                 return true;
 
         return false;
@@ -154,9 +157,12 @@ namespace fs {
                 fi.type = fs::file_type::unknown;
                 break;
         }
+        fi.mode = sb.st_mode;
+        fi.uid = sb.st_uid;
+        fi.gid = sb.st_gid;
 
         if (fi.type == fs::file_type::directory)
-            fi.authorized = fs::is_authorized(fi.type, sb.st_mode, sb.st_uid, sb.st_gid, fs::permission_flag::read);
+            fi.authorized = fs::is_authorized(fi, fs::permission_flag::read);
         else
             fi.authorized = true;
         return fi;
