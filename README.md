@@ -4,7 +4,7 @@ dus
 Console tool which lists the contents of the current/given directory as graphs based on file sizes. Ability to order the result, ascending or descending, based on name or size.
 
 ### Status
-Current stable version: v0.0.2.
+Current stable version: v0.0.3.
 
 ## Background
 I was missing a command line tool which simply summarized the current directory's size (recursively). This because I'm always running out of disk space when there's no time to spare. I found myself using GNU's `du -s` (oh, thereof the name) quite often (no, I don't have any graphical file manager installed); but the result is neither sorted nor quickly interpreted. This application scratches one, out of many, of my personal itches.
@@ -28,6 +28,11 @@ g++ --std=c++14 -lpthread -lcurses src/main.cpp -o dus
 ### v0.0.2
  * Optional natural sort order for names
  * Optional timeout, given in milliseconds, for directory parsing
+
+### v0.0.3
+ * Support to define file as target
+ * Properly handle multi-byte (UTF-8) characters in output
+ * Fixed file permission evaluation logic
 
 ## License
 This project is licensed under GPLv3.
