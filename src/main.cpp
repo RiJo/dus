@@ -99,13 +99,17 @@ int strlen_utf8(const std::string &str)
         unsigned char c = str[i];
         if (c > 127) {
             if ((c & 0xE0) == 0xC0)
-                i += 1;
+                i += 1; // 2 byte sequence
             else if ((c & 0xF0) == 0xE0)
-                i += 2;
+                i += 2; // 3 byte sequence
             else if ((c & 0xF8) == 0xF0)
-                i += 3;
+                i += 3; // 4 byte sequence
+            else if ((c & 0xFC) == 0xF8)
+                i += 4; // 5 byte sequence
+            else if ((c & 0xFE) == 0xFC)
+                i += 5; // 6 byte sequence
             else
-                return 0; // Invalid UTF-8
+                return 0; // Invalid UTF-8, ASCII?
         }
         length++;
     }
