@@ -109,7 +109,7 @@ int strlen_utf8(const std::string &str)
             else if ((c & 0xFE) == 0xFC)
                 i += 5; // 6 byte sequence
             else
-                return 0; // Invalid UTF-8, ASCII?
+                return str.length(); // Not valid UTF-8, probably ISO-8859-1.
         }
         length++;
     }
