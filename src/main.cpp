@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <future>
 #include <math.h>
@@ -24,7 +25,7 @@ void print_usage(const std::string &application) {
     std::cout << std::endl;
     std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
     std::cout << std::endl;
-    std::cout << "  -c <items>  Number of items to printout. Default is infinite (-1)." << std::endl;
+    std::cout << "  -c <count>  Number of items to printout of result head. Default is infinite (-1)." << std::endl;
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
@@ -118,7 +119,7 @@ int strlen_utf8(const std::string &str)
 
 int main(int argc, const char *argv[]) {
     // Parse arguments
-    std::string target;
+    std::set<std::string> targets;
     int count {-1};
     bool order_inverted {false};
     std::string order_by {"size"};
@@ -158,31 +159,28 @@ int main(int argc, const char *argv[]) {
         }
         else {
             std::string potential_target = fs::absolute_path(arg);
-            if (fs::exists(potential_target)) {
-                if (target.length() == 0)
-                    target = potential_target;
-                else
-                    std::cerr << "Target already defined as \"" << target << "\", ignoring \"" << arg << "\"" << std::endl;
-            }
+            if (fs::exists(potential_target))
+                targets.insert(potential_target);
             else
                 std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
         }
     }
 
-    // Parse target
-    if (target.length() == 0)
-        target = fs::current_working_directory();
-    if (!fs::is_type<fs::file_type::directory>(target) && !fs::is_type<fs::file_type::file>(target)) {
-        std::cerr << "File or directory not found: " << target << std::endl;
-        return 1;
-    }
+    // Use current working directory as default target
+    if (targets.size() == 0)
+        targets.insert(fs::current_working_directory());
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [target] {
-        if (fs::is_type<fs::file_type::directory>(target))
-            return fs::read_directory(target, true);
-        else
-            return std::vector<fs::file_info> {fs::read_file(target)};
+    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [targets] {
+        std::vector<fs::file_info> result;
+        for (auto const &target: targets) {
+            if (fs::is_type<fs::file_type::directory>(target))
+                for (auto const &file:fs::read_directory(target, true))
+                    result.push_back(file);
+            else
+                result.push_back(fs::read_file(target));
+        }
+        return result;
     });
     bool timeout = false;
     int rows, cols;
