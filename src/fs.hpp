@@ -37,6 +37,28 @@ namespace fs {
         //~ }
     };
 
+    /*
+        File mode bits:
+           S_ISUID     04000   set-user-ID bit
+           S_ISGID     02000   set-group-ID bit (see below)
+           S_ISVTX     01000   sticky bit (see below)
+
+           S_IRWXU     00700   owner has read, write, and execute permission
+           S_IRUSR     00400   owner has read permission
+           S_IWUSR     00200   owner has write permission
+           S_IXUSR     00100   owner has execute permission
+
+           S_IRWXG     00070   group has read, write, and execute permission
+           S_IRGRP     00040   group has read permission
+           S_IWGRP     00020   group has write permission
+           S_IXGRP     00010   group has execute permission
+
+           S_IRWXO     00007   others (not in group) have read, write, and
+                               execute permission
+           S_IROTH     00004   others have read permission
+           S_IWOTH     00002   others have write permission
+           S_IXOTH     00001   others have execute permission
+    */
     enum permission_flag {
         read = 0x04,
         write = 0x02,
@@ -101,7 +123,6 @@ namespace fs {
 
     fs::file_info read_file(const std::string &path) {
         fs::file_info fi;
-        fi.authorized = false;
         fi.path = fs::dirname(path);
         fi.name = fs::basename(path);
 
@@ -122,8 +143,9 @@ namespace fs {
         // };
         struct stat sb;
         if (lstat(path.c_str(), &sb) == -1) {
-            // File doesn't exist
-            fi.exists = false;
+            // Failed to stat file
+            fi.exists = (errno != EACCES);
+            fi.authorized = (errno == EACCES);
             fi.length = 0;
             fi.type = fs::file_type::unknown;
             return fi;
