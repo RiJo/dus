@@ -10,7 +10,7 @@ class console {
 
         void write_char(int x, int y, char c, bool sync) {
             if (x < 0 || x >= cols)
-                throw std::out_of_range("X coordinate (" + std::to_string(x) + ") is out of range (0-" + std::to_string(rows) + ").");
+                throw std::out_of_range("X coordinate (" + std::to_string(x) + ") is out of range (0-" + std::to_string(cols) + ").");
             if (y < 0 || y >= rows)
                 throw std::out_of_range("Y coordinate (" + std::to_string(y) + ") is out of range (0-" + std::to_string(rows) + ").");
 
