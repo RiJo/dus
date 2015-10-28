@@ -160,7 +160,7 @@ int main(int argc, const char *argv[]) {
         else {
             std::string potential_target = fs::absolute_path(arg);
             if (fs::exists(potential_target))
-                targets.insert(potential_target);
+                targets.insert(std::move(potential_target));
             else
                 std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
         }
@@ -168,7 +168,7 @@ int main(int argc, const char *argv[]) {
 
     // Use current working directory as default target
     if (targets.size() == 0)
-        targets.insert(fs::current_working_directory());
+        targets.insert(std::move(fs::current_working_directory()));
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
     std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [targets] {
@@ -176,9 +176,9 @@ int main(int argc, const char *argv[]) {
         for (auto const &target: targets) {
             if (fs::is_type<fs::file_type::directory>(target))
                 for (auto const &file:fs::read_directory(target, true))
-                    result.push_back(file);
+                    result.push_back(std::move(file));
             else
-                result.push_back(fs::read_file(target));
+                result.push_back(std::move(fs::read_file(target)));
         }
         return result;
     });
