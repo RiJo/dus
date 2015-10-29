@@ -1,7 +1,6 @@
 #ifndef __PIPES_HPP_INCLUDED__
 #define __PIPES_HPP_INCLUDED__
 
-#include <stdexcept>
 #include <iostream>
 
 #include <sys/poll.h>
