@@ -1,5 +1,6 @@
 #include "dus.hpp"
 #include "fs.hpp"
+#include "pipes.hpp"
 #include "console.hpp"
 
 #include <iostream>
@@ -11,14 +12,6 @@
 #include <future>
 #include <math.h>
 #include <chrono>
-
-/*
-    TODO:
-        - Add ctrl-c listener for termination
-        - Howto summarize if permission is denied to some paths?
-        - -j (jobs) to define on how many levels threads should be forked for each directory
-        - Add support for cin: read target files/directories from stdin
-*/
 
 void print_usage(const std::string &application) {
     std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [i] [-n] [-s <size|name>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
@@ -95,8 +88,7 @@ template<typename T> constexpr T ce_pow(const T value, const int power) {
 int strlen_utf8(const std::string &str)
 {
     int length = 0;
-    for (int i = 0; i < str.length(); i++)
-    {
+    for (int i = 0; i < str.length(); i++) {
         unsigned char c = str[i];
         if (c > 127) {
             if ((c & 0xE0) == 0xC0)
@@ -163,6 +155,21 @@ int main(int argc, const char *argv[]) {
                 targets.insert(std::move(potential_target));
             else
                 std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
+        }
+    }
+
+    // Check stdin for targets
+    std::string stdin = pipes::read_stdin();
+    if (stdin.length() > 0) {
+        std::string temp;
+        for (auto const &c: stdin) {
+            if (c != ' ' && c != '\n') {
+                temp += c;
+            }
+            else if (temp.length() > 0) {
+                targets.insert(std::move(fs::absolute_path(temp)));
+                temp = "";
+            }
         }
     }
 
