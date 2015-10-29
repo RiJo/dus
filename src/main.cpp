@@ -159,18 +159,9 @@ int main(int argc, const char *argv[]) {
     }
 
     // Check stdin for targets
-    std::string stdin = pipes::read_stdin();
-    if (stdin.length() > 0) {
-        std::string temp;
-        for (auto const &c: stdin) {
-            if (c != ' ' && c != '\n') {
-                temp += c;
-            }
-            else if (temp.length() > 0) {
-                targets.insert(std::move(fs::absolute_path(temp)));
-                temp = "";
-            }
-        }
+    for (auto const &target: pipes::read_stdin('\n')) {
+        if (target.length() > 0)
+            targets.insert(std::move(fs::absolute_path(target)));
     }
 
     // Use current working directory as default target

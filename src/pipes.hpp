@@ -14,6 +14,20 @@ namespace pipes {
         return poll(&poller, 1, timeout) > 0;
     }
 
+    std::vector<std::string> read_stdin(char delimiter) {
+        std::vector<std::string> result;
+        if (!stdin_has_data())
+            return result;
+
+        const int buffer_size = 256;
+        char buffer[buffer_size];
+        while(!std::cin.eof()){
+            std::cin.getline(buffer, buffer_size, delimiter);
+            result.push_back(std::move(std::string(buffer)));
+        }
+        return result;
+    }
+
     std::string read_stdin() {
         if (!stdin_has_data())
             return "";
