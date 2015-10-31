@@ -19,6 +19,7 @@ void print_usage(const std::string &application) {
     std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
     std::cout << std::endl;
     std::cout << "  -c <count>  Number of items to printout of result head. Default is infinite (-1)." << std::endl;
+    std::cout << "  -d          Don't enter directory. Only used if a single directory is defined as target." << std::endl;
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
@@ -113,6 +114,7 @@ int main(int argc, const char *argv[]) {
     // Parse arguments
     std::set<std::string> targets;
     int count {-1};
+    bool enter_directory {true};
     bool order_inverted {false};
     std::string order_by {"size"};
     bool human_readable {false};
@@ -131,6 +133,9 @@ int main(int argc, const char *argv[]) {
         else if (arg == "-c" && i < argc) {
             count = std::atoi(argv[i + 1]);
             i++;
+        }
+        else if (arg == "-d") {
+            enter_directory = false;
         }
         else if (arg == "-h") {
             human_readable = true;
@@ -169,11 +174,12 @@ int main(int argc, const char *argv[]) {
         targets.insert(std::move(fs::current_working_directory()));
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [targets] {
+    enter_directory &= targets.size() == 1; // Only enter directory if it's the only target
+    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [targets, enter_directory] {
         std::vector<fs::file_info> result;
         for (auto const &target: targets) {
             if (fs::is_type<fs::file_type::directory>(target))
-                for (auto const &file:fs::read_directory(target, true))
+                for (auto const &file:fs::read_directory(target, enter_directory, true))
                     result.push_back(std::move(file));
             else
                 result.push_back(std::move(fs::read_file(target)));

@@ -200,7 +200,7 @@ namespace fs {
         return fi.exists && fi.type == T;
     }
 
-    std::vector<fs::file_info> read_directory(const std::string &path, bool calculate_directory_length = false) {
+    std::vector<fs::file_info> read_directory(const std::string &path, bool enter_directory, bool calculate_directory_length) {
         std::vector<fs::file_info> contents;
 
         DIR *dp {nullptr};
@@ -211,23 +211,40 @@ namespace fs {
                 return contents; // Probably no permissions to read directory contents
         }
 
+        // TODO: strip trailing '/' if directory, or else basename() and dirname() won't return correct values
+        fs::file_info fi_root = read_file(path);
+        if (fi_root.type != fs::file_type::directory)
+            throw new std::runtime_error("Path is not a directory: " + path);
+
+        if (!enter_directory) {
+            if (calculate_directory_length) {
+                for (const auto &fi_child: read_directory(path, true, true)) {
+                    if (!fi_child.authorized)
+                        fi_root.authorized = false;
+                    fi_root.length += fi_child.length;
+                }
+            }
+            contents.push_back(std::move(fi_root));
+            return contents;
+        }
+
         struct dirent *dirp {nullptr};
         while ((dirp = readdir(dp)) != nullptr) {
             std::string filename { std::string(dirp->d_name) };
             if (filename == "." || filename == "..")
                 continue; // Skip virtual paths
 
-            fs::file_info fi = read_file(path + '/' + filename);
+            fs::file_info fi_child = read_file(path + '/' + filename);
 
-            if (calculate_directory_length && fi.type == fs::file_type::directory) {
-                for (const auto &sub: read_directory(path + '/' + filename, true)) {
-                    if (!sub.authorized)
-                        fi.authorized = false;
-                    fi.length += sub.length;
+            if (calculate_directory_length && fi_child.type == fs::file_type::directory) {
+                for (const auto &fi_grandchild: read_directory(path + '/' + filename, enter_directory, true)) {
+                    if (!fi_grandchild.authorized)
+                        fi_child.authorized = false;
+                    fi_child.length += fi_grandchild.length;
                 }
             }
 
-            contents.push_back(std::move(fi));
+            contents.push_back(std::move(fi_child));
         }
         closedir(dp);
         return contents;
