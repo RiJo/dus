@@ -52,12 +52,12 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
                 str2_numeric += str2[j];
             }
 
-            // TODO: handle length>int32
-            int val1 = std::stoi(str1_numeric);
-            int val2 = std::stoi(str2_numeric);
+            // TODO: compare str.length() w/o preceeding zeros before stoi() call?
+            long long val1 = std::stoll(str1_numeric);
+            long long val2 = std::stoll(str2_numeric);
             if (val1 > val2)
                 return 1;
-            else if (val1 < val2)
+            if (val1 < val2)
                 return -1;
 
             i += str1_numeric.length() - 1;
