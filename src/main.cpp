@@ -42,6 +42,8 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
             for (int j = i; j < str1.length(); j++) {
                 if (str1[j] < '0' || str1[j] > '9')
                     break;
+                if (str1[j] == '0' && str1_numeric.length() == 0)
+                    continue;
                 str1_numeric += str1[j];
             }
 
@@ -49,18 +51,26 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
             for (int j = i; j < str2.length(); j++) {
                 if (str2[j] < '0' || str2[j] > '9')
                     break;
+                if (str2[j] == '0' && str2_numeric.length() == 0)
+                    continue;
                 str2_numeric += str2[j];
             }
 
-            // TODO: compare str.length() w/o preceeding zeros before stoi() call?
-            long long val1 = std::stoll(str1_numeric);
-            long long val2 = std::stoll(str2_numeric);
-            if (val1 > val2)
-                return 1;
-            if (val1 < val2)
-                return -1;
+            if (str1_numeric != str2_numeric) {
+                if (str1_numeric.length() > str2_numeric.length())
+                    return 1;
+                if (str1_numeric.length() < str2_numeric.length())
+                    return -1;
 
-            i += str1_numeric.length() - 1;
+                for (int j = 0; j < str1_numeric.length(); j++) {
+                    if (str1_numeric[j] > str2_numeric[j])
+                        return 1;
+                    if (str1_numeric[j] < str2_numeric[j])
+                        return -1;
+                }
+            }
+
+            i += str1_numeric.length();
             continue;
         }
         else {
