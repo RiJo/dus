@@ -18,6 +18,7 @@ void print_usage(const std::string &application) {
     std::cout << std::endl;
     std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
     std::cout << std::endl;
+    std::cout << "  -0          Use null character ('\\0') as target separator for stdin. Default is newline ('\\n')." << std::endl;
     std::cout << "  -c <count>  Number of items to printout of result head. Default is infinite (-1)." << std::endl;
     std::cout << "  -d          Don't enter directory. Only used if a single directory is defined as target." << std::endl;
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
@@ -132,6 +133,7 @@ int main(int argc, const char *argv[]) {
     bool human_readable {false};
     bool natural_order {false};
     int timeout_ms {-1};
+    char stdin_separator {'\n'};
     for (int i = 1; i < argc; i++) {
         std::string arg = std::string(argv[i]);
         if (arg == "--help") {
@@ -141,6 +143,9 @@ int main(int argc, const char *argv[]) {
         else if (arg == "--version" || arg == "-v") {
             print_version(fs::basename(std::string(argv[0])));
             return 0;
+        }
+        else if (arg == "-0") {
+            stdin_separator = '\0';
         }
         else if (arg == "-c" && i < argc) {
             count = std::atoi(argv[i + 1]);
@@ -176,7 +181,7 @@ int main(int argc, const char *argv[]) {
     }
 
     // Check stdin for targets
-    for (auto const &target: pipes::read_stdin('\n')) {
+    for (auto const &target: pipes::read_stdin(stdin_separator, 10)) {
         if (target.length() > 0)
             targets.insert(std::move(fs::absolute_path(target)));
     }
