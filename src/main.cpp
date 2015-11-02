@@ -276,6 +276,8 @@ int main(int argc, const char *argv[]) {
         int file_name_length = strlen_utf8(file.name);
         if (file_name_length >= name_width - 2)
             row_data += file.name.substr(0, name_width - 2) + "..";
+        else if (file.type == fs::file_type::directory)
+            row_data += file.name + '/' + std::string(name_width - file_name_length - 1, ' ');
         else
             row_data += file.name + std::string(name_width - file_name_length, ' ');
         row_data += " ";
