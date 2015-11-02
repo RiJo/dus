@@ -66,19 +66,23 @@ namespace fs {
     };
 
     std::string dirname(const std::string &path) {
-        std::size_t found { path.find_last_of("/\\") };
-        if (found == std::string::npos)
-            return path;
+        std::size_t pos_last_backslash { path.find_last_of("/\\") };
+        if (pos_last_backslash == std::string::npos)
+            return path; // No slashes
+        if (pos_last_backslash == path.length() - 1)
+            return dirname(path.substr(0, path.length() - 1)); // Skip trailing slash
 
-        return path.substr(0, found);
+        return path.substr(0, pos_last_backslash);
     }
 
     std::string basename(const std::string &path) {
-        std::size_t found { path.find_last_of("/\\") };
-        if (found == std::string::npos)
-            return path;
+        std::size_t pos_last_backslash { path.find_last_of("/\\") };
+        if (pos_last_backslash == std::string::npos)
+            return path; // No slashes
+        if (pos_last_backslash == path.length() - 1)
+            return basename(path.substr(0, path.length() - 1)); // Skip trailing slash
 
-        return path.substr(found + 1);
+        return path.substr(pos_last_backslash + 1);
     }
 
     std::string current_working_directory() {
@@ -211,7 +215,6 @@ namespace fs {
                 return contents; // Probably no permissions to read directory contents
         }
 
-        // TODO: strip trailing '/' if directory, or else basename() and dirname() won't return correct values
         fs::file_info fi_root = read_file(path);
         if (fi_root.type != fs::file_type::directory)
             throw new std::runtime_error("Path is not a directory: " + path);
