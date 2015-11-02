@@ -34,6 +34,13 @@ g++ --std=c++14 -lpthread -lcurses src/main.cpp -o dus
  * Properly handle multi-byte (UTF-8) characters in output
  * Fixed file permission evaluation logic
 
+### v0.0.4
+ * Support to define multiple targets
+ * Support to pass target(s) through stdin
+ * Default target is now blocking read of stdin instead of current directory
+ * Improved file permission evaluation logic
+ * Improved natural order logic
+
 ## License
 This project is licensed under GPLv3.
 
