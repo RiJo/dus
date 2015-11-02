@@ -2,6 +2,7 @@
 #define __PIPES_HPP_INCLUDED__
 
 #include <iostream>
+#include <stdexcept>
 
 #include <sys/poll.h>
 
@@ -22,6 +23,8 @@ namespace pipes {
         const int buffer_size = 256;
         char buffer[buffer_size];
         while(!std::cin.eof()){
+            if (std::cin.fail())
+                throw std::runtime_error("stdin read failure.");
             std::cin.getline(buffer, buffer_size, delimiter);
             result.push_back(std::move(std::string(buffer)));
         }
