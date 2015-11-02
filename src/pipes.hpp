@@ -15,9 +15,9 @@ namespace pipes {
         return poll(&poller, 1, timeout) > 0;
     }
 
-    std::vector<std::string> read_stdin(char delimiter) {
+    std::vector<std::string> read_stdin(char delimiter, int timeout = 0) {
         std::vector<std::string> result;
-        if (!stdin_has_data())
+        if (!stdin_has_data(timeout))
             return result;
 
         const int buffer_size = 256;
@@ -31,8 +31,8 @@ namespace pipes {
         return result;
     }
 
-    std::string read_stdin() {
-        if (!stdin_has_data())
+    std::string read_stdin(int timeout = 0) {
+        if (!stdin_has_data(timeout))
             return "";
 
         std::string result {""};
