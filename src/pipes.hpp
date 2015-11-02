@@ -8,6 +8,9 @@
 
 namespace pipes {
     bool stdin_has_data(int timeout = 0) {
+        if (timeout < 0)
+            return true; // Force read (blocking)
+
         struct pollfd poller;
         poller.fd = STDIN_FILENO;
         poller.events = POLLIN;
