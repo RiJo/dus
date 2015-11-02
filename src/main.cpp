@@ -180,15 +180,18 @@ int main(int argc, const char *argv[]) {
         }
     }
 
-    // Check stdin for targets
-    for (auto const &target: pipes::read_stdin(stdin_separator, 10)) {
-        if (target.length() > 0)
-            targets.insert(std::move(fs::absolute_path(target)));
+    // Read stdin as primary default target
+    if (targets.size() == 0) {
+        for (auto const &target: pipes::read_stdin(stdin_separator, -1)) {
+            if (target.length() > 0)
+                targets.insert(std::move(fs::absolute_path(target)));
+        }
     }
 
-    // Use current working directory as default target
-    if (targets.size() == 0)
+    // Use current working directory as secondary default target
+    if (targets.size() == 0) {
         targets.insert(std::move(fs::current_working_directory()));
+    }
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
     enter_directory &= targets.size() == 1; // Only enter directory if it's the only target
