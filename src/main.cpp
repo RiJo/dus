@@ -227,7 +227,7 @@ int main(int argc, const char *argv[]) {
             // Render spinner
             chr = spinner[spin_char];
             spin_char = (spin_char + 1) % spinner_chars;
-            render.write(0, 0, chr);
+            //render.write(0, 0, chr);
 
             // Check timeout
             if (timeout_ms > 0 && std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::system_clock::now() - start_time).count() > timeout_ms) {
