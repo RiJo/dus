@@ -4,7 +4,7 @@ dus
 Console tool which lists the contents of the current/given directory as graphs based on file sizes. Ability to order the result, ascending or descending, based on name or size.
 
 ### Status
-Current stable version: v0.0.3.
+Current stable version: v0.0.4.
 
 ## Background
 I was missing a command line tool which simply summarized the current directory's size (recursively). This because I'm always running out of disk space when there's no time to spare. I found myself using GNU's `du -s` (oh, thereof the name) quite often (no, I don't have any graphical file manager installed); but the result is neither sorted nor quickly interpreted. This application scratches one, out of many, of my personal itches.
@@ -12,11 +12,20 @@ I was missing a command line tool which simply summarized the current directory'
 ## Screenshot
 ![dus preview](screenshot.png)
 
-## Environment
-Everything is written in C++14. There are currently two dependencies which are required to be linked in: libpthread and libcurses.
+## Usage
+    // Summarize current directory
+    $ dus .
+    
+    // Summarize find result
+    $ find /var/log -name "*log" | dus
+    
+    // Summarize /usr/include and pass to less
+    $ dus /usr/include | less
 
-### Compile
-g++ --std=c++14 -lpthread -lcurses src/main.cpp -o dus
+## Compilation
+Everything is written in C++14 and is simply compiled by the following:
+
+    $ g++ --std=c++14 -lpthread src/main.cpp -o dus
 
 ## Releases
 ### v0.0.1
