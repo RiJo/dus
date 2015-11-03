@@ -55,9 +55,16 @@ class console {
             //keypad(wnd, TRUE);
             //nodelay(wnd, TRUE); // getch() is not blocking
 
-            std::istringstream st(exec("stty size"));
-            st >> rows;
-            st >> cols;
+            std::string stty = exec("stty -F /dev/tty size");
+            if (stty.length() > 0) {
+                std::istringstream st(stty);
+                st >> rows;
+                st >> cols;
+            }
+            else {
+                rows = 50;
+                cols = 100;
+            }
         }
 
         ~console() {
