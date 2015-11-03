@@ -1,8 +1,29 @@
 #ifndef __CONSOLE_HPP_INCLUDED__
 #define __CONSOLE_HPP_INCLUDED__
 
+#include <string>
+#include <sstream>
 #include <stdexcept>
+
+#include <stdio.h>
 #include <curses.h>
+
+std::string exec(const std::string &command) {
+    FILE* fp = popen(command.c_str(), "r");
+    if (fp == nullptr)
+        throw std::runtime_error("Failed to open pipe: \"" + command + "\"");
+
+    char buffer[32];
+    std::string result = "";
+    while (!feof(fp)) {
+        if (fgets(buffer, 32, fp) != nullptr)
+            result += buffer;
+    }
+    pclose(fp);
+    fp = nullptr;
+
+    return result;
+}
 
 class console {
     private:
@@ -28,9 +49,13 @@ class console {
             //wnd = stdscr;
             cbreak();
             noecho();
-            getmaxyx(stdscr, rows, cols);
+            //getmaxyx(stdscr, rows, cols);
             //keypad(wnd, TRUE);
             //nodelay(wnd, TRUE); // getch() is not blocking
+
+            std::istringstream st(exec("stty size"));
+            st >> rows;
+            st >> cols;
         }
 
         ~console() {
