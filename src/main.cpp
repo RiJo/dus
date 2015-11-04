@@ -206,41 +206,18 @@ int main(int argc, const char *argv[]) {
         }
         return result;
     });
-    bool timeout = false;
-    int columns;
-    {
-        console render;
-        columns = render.cols;
 
-        std::future_status status;
-        //const std::string spinner = R"(-\|/)";
-        //const int spinner_chars = spinner.length();
-        //int spin_char = 0;
-        //char chr {spinner[spin_char]};
-        auto start_time = std::chrono::system_clock::now();
-        do {
-            status = future.wait_for(std::chrono::milliseconds(50));
-            if (status == std::future_status::ready)
-                break;
-
-            // Render spinner
-            //chr = spinner[spin_char];
-            //spin_char = (spin_char + 1) % spinner_chars;
-            //render.write(0, 0, chr);
-
-            // Check timeout
-            if (timeout_ms > 0 && std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::system_clock::now() - start_time).count() > timeout_ms) {
-                timeout = true;
-                break;
-            }
-        } while (true /*status != std::future_status::ready*/);
+    // Wait for file system result
+    if (timeout_ms > 0) {
+        std::future_status status = future.wait_for(std::chrono::milliseconds(timeout_ms));
+        if (status != std::future_status::ready) {
+            std::cerr << "Timeout after " << timeout_ms << "ms" << std::endl;
+            exit(3); // TODO: properly terminate std::future<>, we'd like to call 'return X' here.
+        }
     }
-
-    if (timeout) {
-        std::cerr << "Timeout after " << timeout_ms << "ms" << std::endl;
-        exit(3); // TODO: properly terminate std::future<>, we'd like to call 'return X' here.
+    else {
+        future.wait();
     }
-
     std::vector<fs::file_info> files { future.get() };
 
     // Sort contents
@@ -262,6 +239,13 @@ int main(int argc, const char *argv[]) {
     double total_length {0.0};
     for (const auto &file: files)
         total_length += file.length;
+
+    // Determine tty width
+    int columns;
+    {
+        console tty;
+        columns = tty.cols;
+    }
 
     // Dump result
     for (auto const &file: files) {
