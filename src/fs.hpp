@@ -27,9 +27,9 @@ namespace fs {
         fs::file_type type;
         std::string path;
         std::string name;
-        int mode;
-        int uid;
-        int gid;
+        unsigned int mode;
+        unsigned int uid;
+        unsigned int gid;
         unsigned int length;
 
         //~ std::ostream& operator<<(std::ostream& os, const struct file_info fi) {

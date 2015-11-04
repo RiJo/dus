@@ -63,7 +63,7 @@ class console {
         }
 
         void write(int x, int y, std::string s) {
-            for (int i = 0; i < s.length(); i++)
+            for (unsigned int i = 0; i < s.length(); i++)
                 write_char(x + i, y, s[i], false);
             //redraw();
         }

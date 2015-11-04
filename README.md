@@ -25,7 +25,7 @@ I was missing a command line tool which simply summarized the current directory'
 ## Compilation
 Everything is written in C++14 and is simply compiled by the following:
 
-    $ g++ --std=c++14 -lpthread src/main.cpp -o dus
+    $ g++ --std=c++14 -Wall -Werror -lpthread src/main.cpp -o dus
 
 ## Releases
 ### v0.0.1

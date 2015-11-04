@@ -36,11 +36,11 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
     if (str1 == str2)
         return 0;
 
-    for (int i = 0; i < str1.length() < str2.length() ? str1.length() : str2.length(); i++) {
+    for (unsigned int i = 0; i < (str1.length() < str2.length()) ? str1.length() : str2.length(); i++) {
         bool numeric_compare = (str1[i] >= '0' && str1[i] <= '9' && str2[i] >= '0' && str2[i] <= '9');
         if (numeric_compare) {
             std::string str1_numeric = "";
-            for (int j = i; j < str1.length(); j++) {
+            for (unsigned int j = i; j < str1.length(); j++) {
                 if (str1[j] < '0' || str1[j] > '9')
                     break;
                 if (str1[j] == '0' && str1_numeric.length() == 0)
@@ -49,7 +49,7 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
             }
 
             std::string str2_numeric = "";
-            for (int j = i; j < str2.length(); j++) {
+            for (unsigned int j = i; j < str2.length(); j++) {
                 if (str2[j] < '0' || str2[j] > '9')
                     break;
                 if (str2[j] == '0' && str2_numeric.length() == 0)
@@ -63,7 +63,7 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
                 if (str1_numeric.length() < str2_numeric.length())
                     return -1;
 
-                for (int j = 0; j < str1_numeric.length(); j++) {
+                for (unsigned int j = 0; j < str1_numeric.length(); j++) {
                     if (str1_numeric[j] > str2_numeric[j])
                         return 1;
                     if (str1_numeric[j] < str2_numeric[j])
@@ -102,7 +102,7 @@ template<typename T> constexpr T ce_pow(const T value, const int power) {
 int strlen_utf8(const std::string &str)
 {
     int length = 0;
-    for (int i = 0; i < str.length(); i++) {
+    for (unsigned int i = 0; i < str.length(); i++) {
         unsigned char c = str[i];
         if (c > 127) {
             if ((c & 0xE0) == 0xC0)
@@ -207,17 +207,16 @@ int main(int argc, const char *argv[]) {
         return result;
     });
     bool timeout = false;
-    int rows, cols;
+    int columns;
     {
         console render;
-        cols = render.cols;
-        rows = render.rows;
+        columns = render.cols;
 
         std::future_status status;
-        const std::string spinner = R"(-\|/)";
-        const int spinner_chars = spinner.length();
-        int spin_char = 0;
-        char chr {spinner[spin_char]};
+        //const std::string spinner = R"(-\|/)";
+        //const int spinner_chars = spinner.length();
+        //int spin_char = 0;
+        //char chr {spinner[spin_char]};
         auto start_time = std::chrono::system_clock::now();
         do {
             status = future.wait_for(std::chrono::milliseconds(50));
@@ -225,8 +224,8 @@ int main(int argc, const char *argv[]) {
                 break;
 
             // Render spinner
-            chr = spinner[spin_char];
-            spin_char = (spin_char + 1) % spinner_chars;
+            //chr = spinner[spin_char];
+            //spin_char = (spin_char + 1) % spinner_chars;
             //render.write(0, 0, chr);
 
             // Check timeout
@@ -308,7 +307,7 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         // Progress bar
-        int chars_left = cols - strlen_utf8(row_data);
+        int chars_left = columns - strlen_utf8(row_data);
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
