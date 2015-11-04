@@ -176,7 +176,7 @@ int main(int argc, const char *argv[]) {
             if (fs::exists(potential_target))
                 targets.insert(std::move(potential_target));
             else
-                std::cerr << "Unhandled argument: \"" << arg << "\"" << std::endl;
+                std::cerr << PROGRAM_NAME << ": Unhandled argument: \"" << arg << "\"" << std::endl;
         }
     }
 
@@ -211,7 +211,7 @@ int main(int argc, const char *argv[]) {
     if (timeout_ms > 0) {
         std::future_status status = future.wait_for(std::chrono::milliseconds(timeout_ms));
         if (status != std::future_status::ready) {
-            std::cerr << "Timeout after " << timeout_ms << "ms" << std::endl;
+            std::cerr << PROGRAM_NAME << ": Timeout after " << timeout_ms << "ms" << std::endl;
             exit(3); // TODO: properly terminate std::future<>, we'd like to call 'return X' here.
         }
     }
@@ -233,7 +233,7 @@ int main(int argc, const char *argv[]) {
         return order_inverted ? first.name > second.name : first.name < second.name;
     };
     if (!comparators.count(order_by)) {
-        std::cerr << "Undefined sort type: \"" << order_by << "\"" << std::endl;
+        std::cerr << PROGRAM_NAME << ": Undefined sort type: \"" << order_by << "\"" << std::endl;
         return 2;
     }
     std::sort(files.begin(), files.end(), comparators[order_by]);
