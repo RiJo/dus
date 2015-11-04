@@ -24,7 +24,7 @@ void print_usage(const std::string &application) {
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
-    std::cout << "  -s <...>    Sort by property; 'size', 'name'. Default is 'size'." << std::endl;
+    std::cout << "  -s <...>    Sort by property; 'size', 'name', 'atime', 'mtime', 'ctime'. Default is 'size'." << std::endl;
     std::cout << "  -t <ms>     File/directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
     std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
@@ -224,6 +224,9 @@ int main(int argc, const char *argv[]) {
     // TODO: use keys in usage printout as available values of '-s'
     std::map<std::string, std::function<bool (const fs::file_info &, const fs::file_info &)>> comparators;
     comparators["size"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
+    comparators["atime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.access_time < second.access_time : first.access_time > second.access_time; };
+    comparators["mtime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.modify_time < second.modify_time : first.modify_time > second.modify_time; };
+    comparators["ctime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.change_time < second.change_time : first.change_time > second.change_time; };
     comparators["name"] = [order_inverted, natural_order] (const fs::file_info &first, const fs::file_info &second) {
         if (natural_order)
             return order_inverted ? cmp_natural_order(first.name, second.name) > 0 : cmp_natural_order(first.name, second.name) < 0;
