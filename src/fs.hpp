@@ -31,10 +31,9 @@ namespace fs {
         unsigned int uid;
         unsigned int gid;
         unsigned int length;
-
-        //~ std::ostream& operator<<(std::ostream& os, const struct file_info fi) {
-            //~ return os << fi.path << '/' << fi.name << '\n';
-        //~ }
+        unsigned int access_time;
+        unsigned int modify_time;
+        unsigned int change_time;
     };
 
     /*
@@ -186,6 +185,9 @@ namespace fs {
         fi.mode = sb.st_mode;
         fi.uid = sb.st_uid;
         fi.gid = sb.st_gid;
+        fi.access_time = sb.st_atime;
+        fi.modify_time = sb.st_mtime;
+        fi.change_time = sb.st_ctime;
 
         if (fi.type == fs::file_type::directory)
             fi.authorized = fs::is_authorized(fi, fs::permission_flag::read);
