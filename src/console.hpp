@@ -8,16 +8,26 @@
 
 #include <stdio.h>
 
-#define ANSI_COLOR_BLACK    "\x1b[30m"
-#define ANSI_COLOR_RED      "\x1b[31m"
-#define ANSI_COLOR_GREEN    "\x1b[32m"
-#define ANSI_COLOR_YELLOW   "\x1b[33m"
-//#define ANSI_COLOR_BROWN   "\x1b[33m"
-#define ANSI_COLOR_BLUE     "\x1b[34m"
-#define ANSI_COLOR_MAGENTA  "\x1b[35m"
-//#define ANSI_COLOR_PURPLE  "\x1b[35m"
-#define ANSI_COLOR_CYAN     "\x1b[36m"
-#define ANSI_COLOR_RESET    "\x1b[0m"
+// Reference: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+#define ANSI_COLOR_RESET            "\x1b[0;0m"
+// Normal
+#define ANSI_COLOR_NORMAL_BLACK     "\x1b[0;30m"
+#define ANSI_COLOR_NORMAL_RED       "\x1b[0;31m"
+#define ANSI_COLOR_NORMAL_GREEN     "\x1b[0;32m"
+#define ANSI_COLOR_NORMAL_YELLOW    "\x1b[0;33m"
+#define ANSI_COLOR_NORMAL_BLUE      "\x1b[0;34m"
+#define ANSI_COLOR_NORMAL_MAGENTA   "\x1b[0;35m"
+#define ANSI_COLOR_NORMAL_CYAN      "\x1b[0;36m"
+#define ANSI_COLOR_NORMAL_WHITE     "\x1b[0;37m"
+// Bright
+#define ANSI_COLOR_BRIGHT_BLACK     "\x1b[1;30m"
+#define ANSI_COLOR_BRIGHT_RED       "\x1b[1;31m"
+#define ANSI_COLOR_BRIGHT_GREEN     "\x1b[1;32m"
+#define ANSI_COLOR_BRIGHT_YELLOW    "\x1b[1;33m"
+#define ANSI_COLOR_BRIGHT_BLUE      "\x1b[1;34m"
+#define ANSI_COLOR_BRIGHT_MAGENTA   "\x1b[1;35m"
+#define ANSI_COLOR_BRIGHT_CYAN      "\x1b[1;36m"
+#define ANSI_COLOR_BRIGHT_WHITE     "\x1b[1;37m"
 
 std::string exec(const std::string &command) {
     FILE* fp = popen(command.c_str(), "r");
@@ -42,28 +52,68 @@ namespace console {
             return stream << ANSI_COLOR_RESET;
         }
 
+        std::ostream& black(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_BLACK;
+        }
+
+        std::ostream& dark_red(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_RED;
+        }
+
+        std::ostream& dark_green(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_GREEN;
+        }
+
+        std::ostream& brown(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_YELLOW;
+        }
+
+        std::ostream& dark_blue(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_BLUE;
+        }
+
+        std::ostream& dark_magenta(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_MAGENTA;
+        }
+
+        std::ostream& dark_cyan(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_CYAN;
+        }
+
+        std::ostream& light_gray(std::ostream& stream) {
+            return stream << ANSI_COLOR_NORMAL_WHITE;
+        }
+
+        std::ostream& dark_gray(std::ostream& stream) {
+            return stream << ANSI_COLOR_BRIGHT_BLACK;
+        }
+
         std::ostream& red(std::ostream& stream) {
-            return stream << ANSI_COLOR_RED;
+            return stream << ANSI_COLOR_BRIGHT_RED;
         }
 
         std::ostream& green(std::ostream& stream) {
-            return stream << ANSI_COLOR_GREEN;
+            return stream << ANSI_COLOR_BRIGHT_GREEN;
         }
 
         std::ostream& yellow(std::ostream& stream) {
-            return stream << ANSI_COLOR_YELLOW;
+            return stream << ANSI_COLOR_BRIGHT_YELLOW;
         }
 
         std::ostream& blue(std::ostream& stream) {
-            return stream << ANSI_COLOR_BLUE;
+            return stream << ANSI_COLOR_BRIGHT_BLUE;
         }
 
         std::ostream& magenta(std::ostream& stream) {
-            return stream << ANSI_COLOR_MAGENTA;
+            return stream << ANSI_COLOR_BRIGHT_MAGENTA;
         }
 
         std::ostream& cyan(std::ostream& stream) {
-            return stream << ANSI_COLOR_CYAN;
+            return stream << ANSI_COLOR_BRIGHT_CYAN;
+        }
+
+        std::ostream& white(std::ostream& stream) {
+            return stream << ANSI_COLOR_BRIGHT_WHITE;
         }
     }
 
