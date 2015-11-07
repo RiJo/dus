@@ -39,38 +39,31 @@ std::string exec(const std::string &command) {
 namespace console {
     namespace color {
         std::ostream& reset(std::ostream& stream) {
-            stream << ANSI_COLOR_RESET;
-            return stream;
+            return stream << ANSI_COLOR_RESET;
         }
 
         std::ostream& red(std::ostream& stream) {
-            stream << ANSI_COLOR_RED;
-            return stream;
+            return stream << ANSI_COLOR_RED;
         }
 
         std::ostream& green(std::ostream& stream) {
-            stream << ANSI_COLOR_GREEN;
-            return stream;
+            return stream << ANSI_COLOR_GREEN;
         }
 
         std::ostream& yellow(std::ostream& stream) {
-            stream << ANSI_COLOR_YELLOW;
-            return stream;
+            return stream << ANSI_COLOR_YELLOW;
         }
 
         std::ostream& blue(std::ostream& stream) {
-            stream << ANSI_COLOR_BLUE;
-            return stream;
+            return stream << ANSI_COLOR_BLUE;
         }
 
         std::ostream& magenta(std::ostream& stream) {
-            stream << ANSI_COLOR_MAGENTA;
-            return stream;
+            return stream << ANSI_COLOR_MAGENTA;
         }
 
         std::ostream& cyan(std::ostream& stream) {
-            stream << ANSI_COLOR_CYAN;
-            return stream;
+            return stream << ANSI_COLOR_CYAN;
         }
     }
 
