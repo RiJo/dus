@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <future>
 #include <math.h>
-#include <chrono>
 
 void print_usage(const std::string &application) {
     std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [i] [-n] [-s <size|name>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
@@ -246,8 +245,8 @@ int main(int argc, const char *argv[]) {
     // Determine tty width
     int columns;
     {
-        console tty;
-        columns = tty.cols;
+        console::tty temp;
+        columns = temp.cols;
     }
 
     // Dump result
