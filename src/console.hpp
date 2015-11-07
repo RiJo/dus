@@ -4,8 +4,20 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <iostream>
 
 #include <stdio.h>
+
+#define ANSI_COLOR_BLACK    "\x1b[30m"
+#define ANSI_COLOR_RED      "\x1b[31m"
+#define ANSI_COLOR_GREEN    "\x1b[32m"
+#define ANSI_COLOR_YELLOW   "\x1b[33m"
+//#define ANSI_COLOR_BROWN   "\x1b[33m"
+#define ANSI_COLOR_BLUE     "\x1b[34m"
+#define ANSI_COLOR_MAGENTA  "\x1b[35m"
+//#define ANSI_COLOR_PURPLE  "\x1b[35m"
+#define ANSI_COLOR_CYAN     "\x1b[36m"
+#define ANSI_COLOR_RESET    "\x1b[0m"
 
 std::string exec(const std::string &command) {
     FILE* fp = popen(command.c_str(), "r");
@@ -25,6 +37,43 @@ std::string exec(const std::string &command) {
 }
 
 namespace console {
+    namespace color {
+        std::ostream& reset(std::ostream& stream) {
+            stream << ANSI_COLOR_RESET;
+            return stream;
+        }
+
+        std::ostream& red(std::ostream& stream) {
+            stream << ANSI_COLOR_RED;
+            return stream;
+        }
+
+        std::ostream& green(std::ostream& stream) {
+            stream << ANSI_COLOR_GREEN;
+            return stream;
+        }
+
+        std::ostream& yellow(std::ostream& stream) {
+            stream << ANSI_COLOR_YELLOW;
+            return stream;
+        }
+
+        std::ostream& blue(std::ostream& stream) {
+            stream << ANSI_COLOR_BLUE;
+            return stream;
+        }
+
+        std::ostream& magenta(std::ostream& stream) {
+            stream << ANSI_COLOR_MAGENTA;
+            return stream;
+        }
+
+        std::ostream& cyan(std::ostream& stream) {
+            stream << ANSI_COLOR_CYAN;
+            return stream;
+        }
+    }
+
     class tty {
         private:
             void write_char(int x, int y, char c, bool sync) {
