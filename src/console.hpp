@@ -80,7 +80,7 @@ namespace console {
             return stream << ANSI_COLOR_NORMAL_CYAN;
         }
 
-        std::ostream& light_gray(std::ostream& stream) {
+        std::ostream& gray(std::ostream& stream) {
             return stream << ANSI_COLOR_NORMAL_WHITE;
         }
 
