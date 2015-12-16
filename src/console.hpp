@@ -56,71 +56,71 @@ namespace console {
             return std::string(ansi_color);
         }
 
-        inline const std::string get_reset() {
+        inline const std::string reset() {
             return get_color(ANSI_COLOR_RESET);
         }
 
-        inline const std::string get_black() {
+        inline const std::string black() {
             return get_color(ANSI_COLOR_NORMAL_BLACK);
         }
 
-        inline const std::string get_dark_red() {
+        inline const std::string dark_red() {
             return get_color(ANSI_COLOR_NORMAL_RED);
         }
 
-        inline const std::string get_dark_green() {
+        inline const std::string dark_green() {
             return get_color(ANSI_COLOR_NORMAL_GREEN);
         }
 
-        inline const std::string get_brown() {
+        inline const std::string brown() {
             return get_color(ANSI_COLOR_NORMAL_YELLOW);
         }
 
-        inline const std::string get_dark_blue() {
+        inline const std::string dark_blue() {
             return get_color(ANSI_COLOR_NORMAL_BLUE);
         }
 
-        inline const std::string get_dark_magenta() {
+        inline const std::string dark_magenta() {
             return get_color(ANSI_COLOR_NORMAL_MAGENTA);
         }
 
-        inline const std::string get_dark_cyan() {
+        inline const std::string dark_cyan() {
             return get_color(ANSI_COLOR_NORMAL_CYAN);
         }
 
-        inline const std::string get_gray() {
+        inline const std::string gray() {
             return get_color(ANSI_COLOR_NORMAL_WHITE);
         }
 
-        inline const std::string get_dark_gray() {
+        inline const std::string dark_gray() {
             return get_color(ANSI_COLOR_BRIGHT_BLACK);
         }
 
-        inline const std::string get_red() {
+        inline const std::string red() {
             return get_color(ANSI_COLOR_BRIGHT_RED);
         }
 
-        inline const std::string get_green() {
+        inline const std::string green() {
             return get_color(ANSI_COLOR_BRIGHT_GREEN);
         }
 
-        inline const std::string get_yellow() {
+        inline const std::string yellow() {
             return get_color(ANSI_COLOR_BRIGHT_YELLOW);
         }
 
-        inline const std::string get_blue() {
+        inline const std::string blue() {
             return get_color(ANSI_COLOR_BRIGHT_BLUE);
         }
 
-        inline const std::string get_magenta() {
+        inline const std::string magenta() {
             return get_color(ANSI_COLOR_BRIGHT_MAGENTA);
         }
 
-        inline const std::string get_cyan() {
+        inline const std::string cyan() {
             return get_color(ANSI_COLOR_BRIGHT_CYAN);
         }
 
-        inline const std::string get_white() {
+        inline const std::string white() {
             return get_color(ANSI_COLOR_BRIGHT_WHITE);
         }
 
