@@ -133,6 +133,7 @@ int main(int argc, const char *argv[]) {
     bool natural_order {false};
     int timeout_ms {-1};
     char stdin_separator {'\n'};
+    bool colorize {false};
     for (int i = 1; i < argc; i++) {
         std::string arg = std::string(argv[i]);
         if (arg == "--help") {
@@ -149,6 +150,10 @@ int main(int argc, const char *argv[]) {
         else if (arg == "-c" && i < argc) {
             count = std::atoi(argv[i + 1]);
             i++;
+        }
+        else if (arg == "--color")
+        {
+            colorize = true;
         }
         else if (arg == "-d") {
             enter_directory = false;
@@ -178,6 +183,9 @@ int main(int argc, const char *argv[]) {
                 std::cerr << console::color::red << PROGRAM_NAME << ": Unhandled argument: \"" << arg << "\"" << console::color::reset << std::endl;
         }
     }
+
+    // Set console properties
+    console::color::enable = colorize;
 
     // Read stdin as primary default target
     if (targets.size() == 0) {
@@ -258,7 +266,7 @@ int main(int argc, const char *argv[]) {
 
         // Prefix
         if (!file.authorized)
-            row_data += "!";
+            row_data += console::color::get_red() + "!" + console::color::get_reset();
         else if (file.type == fs::file_type::directory)
             row_data += "*";
         else
@@ -292,19 +300,26 @@ int main(int argc, const char *argv[]) {
         row_data += temp + std::string(size_width - temp.length(), ' ');
         row_data += " ";
 
+        double percent = (file.length / total_length) * 100.0;
+
         // Progress bar
         int chars_left = columns - strlen_utf8(row_data);
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
+        if (percent >= 50)
+            row_data += console::color::get_red();
+        else if (percent >= 25)
+            row_data += console::color::get_yellow();
+        else
+            row_data += console::color::get_green();
         row_data += std::string(bar_width, '=');
         row_data += "|";
+        row_data += console::color::get_reset();
         row_data += std::string(progress_width - bar_width - 3, ' ');
         row_data += "]";
 
         // Percentage
-        double percent = (file.length / total_length) * 100.0;
-        //percent = ((int)(percent * 10)) / 10.0; // Round to one decimal
         if ((int)percent < 10)
             row_data += "  ";
         else if ((int)percent < 100)
