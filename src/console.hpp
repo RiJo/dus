@@ -48,72 +48,155 @@ std::string exec(const std::string &command) {
 
 namespace console {
     namespace color {
-        std::ostream& reset(std::ostream& stream) {
-            return stream << ANSI_COLOR_RESET;
+        static bool enable = true;
+
+        inline const std::string get_color(const char *ansi_color) {
+            if (!enable)
+                return "";
+            return std::string(ansi_color);
         }
 
-        std::ostream& black(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_BLACK;
+        inline const std::string get_reset() {
+            return get_color(ANSI_COLOR_RESET);
         }
 
-        std::ostream& dark_red(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_RED;
+        inline const std::string get_black() {
+            return get_color(ANSI_COLOR_NORMAL_BLACK);
         }
 
-        std::ostream& dark_green(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_GREEN;
+        inline const std::string get_dark_red() {
+            return get_color(ANSI_COLOR_NORMAL_RED);
         }
 
-        std::ostream& brown(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_YELLOW;
+        inline const std::string get_dark_green() {
+            return get_color(ANSI_COLOR_NORMAL_GREEN);
         }
 
-        std::ostream& dark_blue(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_BLUE;
+        inline const std::string get_brown() {
+            return get_color(ANSI_COLOR_NORMAL_YELLOW);
         }
 
-        std::ostream& dark_magenta(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_MAGENTA;
+        inline const std::string get_dark_blue() {
+            return get_color(ANSI_COLOR_NORMAL_BLUE);
         }
 
-        std::ostream& dark_cyan(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_CYAN;
+        inline const std::string get_dark_magenta() {
+            return get_color(ANSI_COLOR_NORMAL_MAGENTA);
         }
 
-        std::ostream& gray(std::ostream& stream) {
-            return stream << ANSI_COLOR_NORMAL_WHITE;
+        inline const std::string get_dark_cyan() {
+            return get_color(ANSI_COLOR_NORMAL_CYAN);
         }
 
-        std::ostream& dark_gray(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_BLACK;
+        inline const std::string get_gray() {
+            return get_color(ANSI_COLOR_NORMAL_WHITE);
         }
 
-        std::ostream& red(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_RED;
+        inline const std::string get_dark_gray() {
+            return get_color(ANSI_COLOR_BRIGHT_BLACK);
         }
 
-        std::ostream& green(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_GREEN;
+        inline const std::string get_red() {
+            return get_color(ANSI_COLOR_BRIGHT_RED);
         }
 
-        std::ostream& yellow(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_YELLOW;
+        inline const std::string get_green() {
+            return get_color(ANSI_COLOR_BRIGHT_GREEN);
         }
 
-        std::ostream& blue(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_BLUE;
+        inline const std::string get_yellow() {
+            return get_color(ANSI_COLOR_BRIGHT_YELLOW);
         }
 
-        std::ostream& magenta(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_MAGENTA;
+        inline const std::string get_blue() {
+            return get_color(ANSI_COLOR_BRIGHT_BLUE);
         }
 
-        std::ostream& cyan(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_CYAN;
+        inline const std::string get_magenta() {
+            return get_color(ANSI_COLOR_BRIGHT_MAGENTA);
         }
 
-        std::ostream& white(std::ostream& stream) {
-            return stream << ANSI_COLOR_BRIGHT_WHITE;
+        inline const std::string get_cyan() {
+            return get_color(ANSI_COLOR_BRIGHT_CYAN);
+        }
+
+        inline const std::string get_white() {
+            return get_color(ANSI_COLOR_BRIGHT_WHITE);
+        }
+
+
+        inline std::ostream& colorize(std::ostream& stream, const char *ansi_color) {
+            if (!enable)
+                return stream;
+            return stream << ansi_color;
+        }
+
+        inline std::ostream& reset(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_RESET);
+        }
+
+        inline std::ostream& black(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_BLACK);
+        }
+
+        inline std::ostream& dark_red(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_RED);
+        }
+
+        inline std::ostream& dark_green(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_GREEN);
+        }
+
+        inline std::ostream& brown(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_YELLOW);
+        }
+
+        inline std::ostream& dark_blue(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_BLUE);
+        }
+
+        inline std::ostream& dark_magenta(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_MAGENTA);
+        }
+
+        inline std::ostream& dark_cyan(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_CYAN);
+        }
+
+        inline std::ostream& gray(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_NORMAL_WHITE);
+        }
+
+        inline std::ostream& dark_gray(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_BLACK);
+        }
+
+        inline std::ostream& red(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_RED);
+        }
+
+        inline std::ostream& green(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_GREEN);
+        }
+
+        inline std::ostream& yellow(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_YELLOW);
+        }
+
+        inline std::ostream& blue(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_BLUE);
+        }
+
+        inline std::ostream& magenta(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_MAGENTA);
+        }
+
+        inline std::ostream& cyan(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_CYAN);
+        }
+
+        inline std::ostream& white(std::ostream& stream) {
+            return colorize(stream, ANSI_COLOR_BRIGHT_WHITE);
         }
     }
 
