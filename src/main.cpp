@@ -266,7 +266,7 @@ int main(int argc, const char *argv[]) {
 
         // Prefix
         if (!file.authorized)
-            row_data += console::color::get_red() + "!" + console::color::get_reset();
+            row_data += console::color::red() + "!" + console::color::reset();
         else if (file.type == fs::file_type::directory)
             row_data += "*";
         else
@@ -308,14 +308,14 @@ int main(int argc, const char *argv[]) {
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
         if (percent >= 50)
-            row_data += console::color::get_red();
+            row_data += console::color::red();
         else if (percent >= 25)
-            row_data += console::color::get_yellow();
+            row_data += console::color::yellow();
         else
-            row_data += console::color::get_green();
+            row_data += console::color::green();
         row_data += std::string(bar_width, '=');
         row_data += "|";
-        row_data += console::color::get_reset();
+        row_data += console::color::reset();
         row_data += std::string(progress_width - bar_width - 3, ' ');
         row_data += "]";
 
