@@ -49,7 +49,7 @@ std::string exec(const std::string &command) {
 
 namespace console {
     namespace color {
-        static bool enable = true;
+        static bool enable {true};
 
         inline const std::string get_color(const char *ansi_color) {
             if (!enable)
@@ -207,7 +207,7 @@ namespace console {
         arg_t *next;
     };
 
-    std::vector<arg_t> parse_args(const int argc, const char *argv[]) {
+    const std::vector<arg_t> parse_args(const int argc, const char *argv[]) {
         std::vector<arg_t> args;
 
         for (int i = 1; i < argc; i++) {
@@ -245,7 +245,7 @@ namespace console {
         }
 
         // Link list
-        arg_t *prev = nullptr;
+        arg_t *prev {nullptr};
         for (auto &arg: args) {
             if (prev)
                 prev->next = &arg;
