@@ -19,13 +19,14 @@ void print_usage(const std::string &application) {
     std::cout << std::endl;
     std::cout << "  -0          Use null character ('\\0') as target separator for stdin. Default is newline ('\\n')." << std::endl;
     std::cout << "  -c <count>  Number of items to printout of result head. Default is infinite (-1)." << std::endl;
+    std::cout << "  --color     Colorized output for easier interpretation." << std::endl;
     std::cout << "  -d          Don't enter directory. Only used if a single directory is defined as target." << std::endl;
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
+    std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
     std::cout << "  -s <...>    Sort by property; 'size', 'name', 'atime', 'mtime', 'ctime'. Default is 'size'." << std::endl;
     std::cout << "  -t <ms>     File/directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
-    std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
     std::cout << "                  by Rikard Johansson, 2015. Licensed under " PROGRAM_LICENSE "." << std::endl;
