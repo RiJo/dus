@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include <vector>
 
 #include <stdio.h>
 
@@ -198,6 +199,60 @@ namespace console {
         inline std::ostream& white(std::ostream& stream) {
             return colorize(stream, ANSI_COLOR_BRIGHT_WHITE);
         }
+    }
+
+    struct arg_t {
+        std::string key;
+        std::string value;
+        arg_t *next;
+    };
+
+    std::vector<arg_t> parse_args(const int argc, const char *argv[]) {
+        std::vector<arg_t> args;
+
+        for (int i = 1; i < argc; i++) {
+            std::string arg = std::string(argv[i]);
+            switch (arg.length()) {
+                case 1:
+                    args.emplace_back(arg_t{arg, "", nullptr});
+                case 0:
+                    continue;
+                default:
+                    break;
+            }
+
+            if (arg[0] != '-') {
+                // No option
+                args.emplace_back(arg_t{arg, "", nullptr});
+                continue;
+            }
+
+            if (arg[1] != '-') {
+                // Flag(s) option
+                for (unsigned int f = 1; f < arg.length(); f++)
+                    args.emplace_back(arg_t{"-" + arg.substr(f, 1), "", nullptr});
+                continue;
+            }
+
+            std::string::size_type offset_equal_sign = arg.find("=", 2);
+            if(offset_equal_sign != std::string::npos) {
+                // Key-value option
+                args.emplace_back(arg_t{arg.substr(0, offset_equal_sign), arg.substr(offset_equal_sign + 1), nullptr});
+            } else {
+                // Flag option
+                args.emplace_back(arg_t{arg, "", nullptr});
+            }
+        }
+
+        // Link list
+        arg_t *prev = nullptr;
+        for (auto &arg: args) {
+            if (prev)
+                prev->next = &arg;
+            prev = &arg;
+        }
+
+        return args;
     }
 
     class tty {
