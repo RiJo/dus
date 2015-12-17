@@ -134,53 +134,60 @@ int main(int argc, const char *argv[]) {
     int timeout_ms {-1};
     char stdin_separator {'\n'};
     bool colorize {false};
-    for (int i = 1; i < argc; i++) {
-        std::string arg = std::string(argv[i]);
-        if (arg == "--help") {
+    bool skip_next_arg {false};
+    for (const auto &arg: console::parse_args(argc, argv)) {
+        if (skip_next_arg) {
+            skip_next_arg = false;
+            continue;
+        }
+
+        if (arg.key == "--help") {
             print_usage(fs::basename(std::string(argv[0])));
             return 0;
         }
-        else if (arg == "--version" || arg == "-v") {
+        else if (arg.key == "--version" || arg.key == "-v") {
             print_version(fs::basename(std::string(argv[0])));
             return 0;
         }
-        else if (arg == "-0") {
+        else if (arg.key == "-0") {
             stdin_separator = '\0';
         }
-        else if (arg == "-c" && i < argc) {
-            count = std::atoi(argv[i + 1]);
-            i++;
+        else if (arg.key == "-c" && arg.next) {
+            count = std::stoi(arg.next->key);
+            skip_next_arg = true;
         }
-        else if (arg == "--color")
-        {
+        else if (arg.key == "--color") {
             colorize = true;
         }
-        else if (arg == "-d") {
+        else if (arg.key == "-d") {
             enter_directory = false;
         }
-        else if (arg == "-h") {
+        else if (arg.key == "-h") {
             human_readable = true;
         }
-        else if (arg == "-i") {
+        else if (arg.key == "-i") {
             order_inverted = !order_inverted;
         }
-        else if (arg == "-n") {
+        else if (arg.key == "-n") {
             natural_order = true;
         }
-        else if (arg == "-s" && i < argc) {
-            order_by = std::string(argv[i + 1]);
-            i++;
+        else if (arg.key == "-s" && arg.next) {
+            order_by = std::string(arg.next->key);
+            skip_next_arg = true;
         }
-        else if (arg == "-t" && i < argc) {
-            timeout_ms = std::atoi(argv[i + 1]);
-            i++;
+        else if (arg.key == "-t" && arg.next) {
+            timeout_ms = std::stoi(arg.next->key);
+            skip_next_arg = true;
         }
-        else {
-            std::string potential_target = fs::absolute_path(arg);
+        else if (arg.value.length() == 0) {
+            std::string potential_target = fs::absolute_path(arg.key);
             if (fs::exists(potential_target))
                 targets.insert(std::move(potential_target));
             else
-                std::cerr << console::color::red << PROGRAM_NAME << ": Unhandled argument: \"" << arg << "\"" << console::color::reset << std::endl;
+                std::cerr << console::color::red << PROGRAM_NAME << ": Unhandled argument flag: \"" << arg.key << "\"" << console::color::reset << std::endl;
+        }
+        else {
+            std::cerr << console::color::red << PROGRAM_NAME << ": Unhandled argument key: \"" << arg.key << "\", value: \"" << arg.value << "\"" << console::color::reset << std::endl;
         }
     }
 
