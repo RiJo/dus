@@ -216,6 +216,42 @@ namespace console {
         arg_t *next;
     };
 
+    unsigned int text_width(const std::string &str) {
+        unsigned int length = 0;
+        for (unsigned int i = 0; i < str.length(); i++) {
+            unsigned char c = str[i];
+
+            // UTF-8 multibyte
+            if (c > 127) {
+                if ((c & 0xE0) == 0xC0)
+                    i += 1; // 2 byte sequence
+                else if ((c & 0xF0) == 0xE0)
+                    i += 2; // 3 byte sequence
+                else if ((c & 0xF8) == 0xF0)
+                    i += 3; // 4 byte sequence
+                else if ((c & 0xFC) == 0xF8)
+                    i += 4; // 5 byte sequence
+                else if ((c & 0xFE) == 0xFC)
+                    i += 5; // 6 byte sequence
+                else
+                    throw std::runtime_error("Not valid UTF-8 (offset " + std::to_string(i) + "), probably ISO-8859-1: \"" + str + "\"");
+            }
+
+            // ANSI escape: \x1b[...m
+            if (c == 27) {
+                if (i < str.length() - 1 && str[i + 1] == 91) {
+                    std::string::size_type offset_m = str.find("m", i + 2);
+                    if(offset_m == std::string::npos)
+                        throw std::runtime_error("Could not find ANSI escape sequence (offset " + std::to_string(i) + ") end symbol: \"" + str + "\"");
+                    i = offset_m + 1;
+                }
+            }
+
+            length++;
+        }
+        return length;
+    }
+
     const std::vector<arg_t> parse_args(const int argc, const char *argv[]) {
         std::vector<arg_t> args;
 
