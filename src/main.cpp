@@ -13,10 +13,11 @@
 #include <math.h>
 
 void print_usage(const std::string &application) {
-    std::cout << "usage: " << PROGRAM_NAME << " [-c <count>] [-h] [i] [-n] [-s <size|name>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
+    std::cout << "usage: " << PROGRAM_NAME << " [-] [-0] [-c <count>] [--color] [-d] [-h] [i] [-n] [-s <size|name|atime|mtime|ctime>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
     std::cout << std::endl;
     std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
     std::cout << std::endl;
+    std::cout << "  -           Force read from stdin. Default is reading from stdin only performed if no target is given." << std::endl;
     std::cout << "  -0          Use null character ('\\0') as target separator for stdin. Default is newline ('\\n')." << std::endl;
     std::cout << "  -c <count>  Number of items to printout of result head. Default is infinite (-1)." << std::endl;
     std::cout << "  --color     Colorized output for easier interpretation." << std::endl;
@@ -137,6 +138,7 @@ int main(int argc, const char *argv[]) {
     int timeout_ms {-1};
     char stdin_separator {'\n'};
     bool colorize {false};
+    bool force_read_stdin {false};
     bool skip_next_arg {false};
     for (const auto &arg: console::parse_args(argc, argv)) {
         if (skip_next_arg) {
@@ -151,6 +153,9 @@ int main(int argc, const char *argv[]) {
         else if (arg.key == "--version" || arg.key == "-v") {
             print_version(fs::basename(std::string(argv[0])));
             return 0;
+        }
+        else if (arg.key == "-") {
+            force_read_stdin = true;
         }
         else if (arg.key == "-0") {
             stdin_separator = '\0';
@@ -198,7 +203,7 @@ int main(int argc, const char *argv[]) {
     console::color::enable = colorize;
 
     // Read stdin as primary default target
-    if (targets.size() == 0) {
+    if (targets.size() == 0 || force_read_stdin) {
         for (auto const &target: pipes::read_stdin(stdin_separator, -1)) {
             if (target.length() > 0)
                 targets.insert(std::move(fs::absolute_path(target)));
