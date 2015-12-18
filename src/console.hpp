@@ -10,25 +10,34 @@
 #include <stdio.h>
 
 // Reference: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-#define ANSI_COLOR_RESET            "\x1b[0;0m"
-// Normal
-#define ANSI_COLOR_NORMAL_BLACK     "\x1b[0;30m"
-#define ANSI_COLOR_NORMAL_RED       "\x1b[0;31m"
-#define ANSI_COLOR_NORMAL_GREEN     "\x1b[0;32m"
-#define ANSI_COLOR_NORMAL_YELLOW    "\x1b[0;33m"
-#define ANSI_COLOR_NORMAL_BLUE      "\x1b[0;34m"
-#define ANSI_COLOR_NORMAL_MAGENTA   "\x1b[0;35m"
-#define ANSI_COLOR_NORMAL_CYAN      "\x1b[0;36m"
-#define ANSI_COLOR_NORMAL_WHITE     "\x1b[0;37m"
-// Bright
-#define ANSI_COLOR_BRIGHT_BLACK     "\x1b[1;30m"
-#define ANSI_COLOR_BRIGHT_RED       "\x1b[1;31m"
-#define ANSI_COLOR_BRIGHT_GREEN     "\x1b[1;32m"
-#define ANSI_COLOR_BRIGHT_YELLOW    "\x1b[1;33m"
-#define ANSI_COLOR_BRIGHT_BLUE      "\x1b[1;34m"
-#define ANSI_COLOR_BRIGHT_MAGENTA   "\x1b[1;35m"
-#define ANSI_COLOR_BRIGHT_CYAN      "\x1b[1;36m"
-#define ANSI_COLOR_BRIGHT_WHITE     "\x1b[1;37m"
+#define ANSI_COLOR_FOREGROUND_RESET            "\x1b[0;0m"
+// Foreground - Normal
+#define ANSI_COLOR_FOREGROUND_NORMAL_BLACK     "\x1b[0;30m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_RED       "\x1b[0;31m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_GREEN     "\x1b[0;32m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_YELLOW    "\x1b[0;33m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_BLUE      "\x1b[0;34m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_MAGENTA   "\x1b[0;35m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_CYAN      "\x1b[0;36m"
+#define ANSI_COLOR_FOREGROUND_NORMAL_WHITE     "\x1b[0;37m"
+// Foreground - Bright
+#define ANSI_COLOR_FOREGROUND_BRIGHT_BLACK     "\x1b[1;30m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_RED       "\x1b[1;31m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_GREEN     "\x1b[1;32m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_YELLOW    "\x1b[1;33m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_BLUE      "\x1b[1;34m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_MAGENTA   "\x1b[1;35m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_CYAN      "\x1b[1;36m"
+#define ANSI_COLOR_FOREGROUND_BRIGHT_WHITE     "\x1b[1;37m"
+// Background
+#define ANSI_COLOR_BACKGROUND_BLACK            "\x1b[1;40m"
+#define ANSI_COLOR_BACKGROUND_RED              "\x1b[1;41m"
+#define ANSI_COLOR_BACKGROUND_GREEN            "\x1b[1;42m"
+#define ANSI_COLOR_BACKGROUND_YELLOW           "\x1b[1;43m"
+#define ANSI_COLOR_BACKGROUND_BLUE             "\x1b[1;44m"
+#define ANSI_COLOR_BACKGROUND_MAGENTA          "\x1b[1;45m"
+#define ANSI_COLOR_BACKGROUND_CYAN             "\x1b[1;46m"
+#define ANSI_COLOR_BACKGROUND_WHITE            "\x1b[1;47m"
 
 std::string exec(const std::string &command) {
     FILE* fp = popen(command.c_str(), "r");
@@ -58,71 +67,71 @@ namespace console {
         }
 
         inline const std::string reset() {
-            return get_color(ANSI_COLOR_RESET);
+            return get_color(ANSI_COLOR_FOREGROUND_RESET);
         }
 
         inline const std::string black() {
-            return get_color(ANSI_COLOR_NORMAL_BLACK);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_BLACK);
         }
 
         inline const std::string dark_red() {
-            return get_color(ANSI_COLOR_NORMAL_RED);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_RED);
         }
 
         inline const std::string dark_green() {
-            return get_color(ANSI_COLOR_NORMAL_GREEN);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_GREEN);
         }
 
         inline const std::string brown() {
-            return get_color(ANSI_COLOR_NORMAL_YELLOW);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_YELLOW);
         }
 
         inline const std::string dark_blue() {
-            return get_color(ANSI_COLOR_NORMAL_BLUE);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_BLUE);
         }
 
         inline const std::string dark_magenta() {
-            return get_color(ANSI_COLOR_NORMAL_MAGENTA);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_MAGENTA);
         }
 
         inline const std::string dark_cyan() {
-            return get_color(ANSI_COLOR_NORMAL_CYAN);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_CYAN);
         }
 
         inline const std::string gray() {
-            return get_color(ANSI_COLOR_NORMAL_WHITE);
+            return get_color(ANSI_COLOR_FOREGROUND_NORMAL_WHITE);
         }
 
         inline const std::string dark_gray() {
-            return get_color(ANSI_COLOR_BRIGHT_BLACK);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_BLACK);
         }
 
         inline const std::string red() {
-            return get_color(ANSI_COLOR_BRIGHT_RED);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_RED);
         }
 
         inline const std::string green() {
-            return get_color(ANSI_COLOR_BRIGHT_GREEN);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_GREEN);
         }
 
         inline const std::string yellow() {
-            return get_color(ANSI_COLOR_BRIGHT_YELLOW);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_YELLOW);
         }
 
         inline const std::string blue() {
-            return get_color(ANSI_COLOR_BRIGHT_BLUE);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_BLUE);
         }
 
         inline const std::string magenta() {
-            return get_color(ANSI_COLOR_BRIGHT_MAGENTA);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_MAGENTA);
         }
 
         inline const std::string cyan() {
-            return get_color(ANSI_COLOR_BRIGHT_CYAN);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_CYAN);
         }
 
         inline const std::string white() {
-            return get_color(ANSI_COLOR_BRIGHT_WHITE);
+            return get_color(ANSI_COLOR_FOREGROUND_BRIGHT_WHITE);
         }
 
 
@@ -133,71 +142,71 @@ namespace console {
         }
 
         inline std::ostream& reset(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_RESET);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_RESET);
         }
 
         inline std::ostream& black(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_BLACK);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_BLACK);
         }
 
         inline std::ostream& dark_red(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_RED);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_RED);
         }
 
         inline std::ostream& dark_green(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_GREEN);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_GREEN);
         }
 
         inline std::ostream& brown(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_YELLOW);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_YELLOW);
         }
 
         inline std::ostream& dark_blue(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_BLUE);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_BLUE);
         }
 
         inline std::ostream& dark_magenta(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_MAGENTA);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_MAGENTA);
         }
 
         inline std::ostream& dark_cyan(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_CYAN);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_CYAN);
         }
 
         inline std::ostream& gray(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_NORMAL_WHITE);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_NORMAL_WHITE);
         }
 
         inline std::ostream& dark_gray(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_BLACK);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_BLACK);
         }
 
         inline std::ostream& red(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_RED);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_RED);
         }
 
         inline std::ostream& green(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_GREEN);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_GREEN);
         }
 
         inline std::ostream& yellow(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_YELLOW);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_YELLOW);
         }
 
         inline std::ostream& blue(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_BLUE);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_BLUE);
         }
 
         inline std::ostream& magenta(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_MAGENTA);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_MAGENTA);
         }
 
         inline std::ostream& cyan(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_CYAN);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_CYAN);
         }
 
         inline std::ostream& white(std::ostream& stream) {
-            return colorize(stream, ANSI_COLOR_BRIGHT_WHITE);
+            return colorize(stream, ANSI_COLOR_FOREGROUND_BRIGHT_WHITE);
         }
     }
 
