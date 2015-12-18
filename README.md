@@ -15,10 +15,10 @@ I was missing a command line tool which simply summarized the current directory'
 ## Usage
     // Summarize current directory
     $ dus .
-    
+
     // Summarize find result
     $ find /var/log -name "*log" | dus
-    
+
     // Summarize /usr/include and pass to less
     $ dus /usr/include | less
 
@@ -53,6 +53,11 @@ Everything is written in C++14 and is simply compiled by the following:
 ### v0.0.5
  * Removed curses dependency
  * Fixed garbage when output was piped to other program
+
+### v0.0.6
+ * Now compiles with: -Wall -Werror
+ * Support order by atime, mtime or ctime
+ * Support colorized output
 
 ## License
 This project is licensed under GPLv3.
