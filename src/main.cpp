@@ -99,9 +99,9 @@ template<typename T> constexpr T ce_pow(const T value, const int power) {
     return (power > 1) ? value * ce_pow(value, power - 1) : (power == 1) ? value : (power == 0) ? 0 : throw std::runtime_error("Power cannot be negative: " + std::to_string(power));
 }
 
-int strlen_utf8(const std::string &str)
-{
-    int length = 0;
+#if 0
+unsigned int strlen_utf8(const std::string &str) {
+    unsigned int length = 0;
     for (unsigned int i = 0; i < str.length(); i++) {
         unsigned char c = str[i];
         if (c > 127) {
@@ -118,10 +118,12 @@ int strlen_utf8(const std::string &str)
             else
                 return str.length(); // Not valid UTF-8, probably ISO-8859-1.
         }
+
         length++;
     }
     return length;
 }
+#endif
 
 int main(int argc, const char *argv[]) {
     // Parse arguments
@@ -282,7 +284,7 @@ int main(int argc, const char *argv[]) {
 
         // Filename
         const int name_width {35};
-        int file_name_length = strlen_utf8(file.name);
+        int file_name_length = console::text_width(file.name);
         if (file_name_length >= name_width - 2)
             row_data += file.name.substr(0, name_width - 2) + "..";
         else if (file.type == fs::file_type::directory)
@@ -311,7 +313,7 @@ int main(int argc, const char *argv[]) {
         double percent = (file.length / total_length) * 100.0;
 
         // Progress bar
-        int chars_left = columns - strlen_utf8(row_data);
+        int chars_left = columns - console::text_width(row_data);
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
