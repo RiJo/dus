@@ -3,6 +3,7 @@
 #include "pipes.hpp"
 #include "console.hpp"
 
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -272,7 +273,41 @@ int main(int argc, const char *argv[]) {
         columns = temp.cols;
     }
 
+    // Find out the maximum width for filenames, maximum size for files
+    unsigned int name_width {0};
+    unsigned int size_width {0};
+    {
+        for (auto const &file: files) {
+            if (count == 0)
+                break;
+
+            name_width = std::max(name_width, console::text_width(file.name));
+
+            std::stringstream temp;
+            if (human_readable && file.length >= 1024) {
+                if (file.length >= ce_pow(1024, 3))
+                    temp << file.length / ce_pow(1024, 3);
+                else if (file.length >= ce_pow(1024, 2))
+                    temp << file.length / ce_pow(1024, 2);
+                else if (file.length >= 1024)
+                    temp << file.length / 1024;
+            }
+            else
+                temp << file.length;
+            size_width = std::max(size_width, (unsigned int) temp.str().length());
+
+            if (count > 0)
+                count--;
+        }
+
+        const unsigned int max_name_width {35};
+        name_width = std::min(max_name_width, name_width);
+        if (human_readable)
+            size_width++;  // 1 for unit or space
+    }
+
     // Dump result
+    const int chars_left = columns - (1 + name_width + 1 + size_width + 1);
     for (auto const &file: files) {
         if (count == 0)
             break;
@@ -288,9 +323,8 @@ int main(int argc, const char *argv[]) {
             row_data += " ";
 
         // Filename
-        const int name_width {35};
-        int file_name_length = console::text_width(file.name);
-        if (file_name_length >= name_width - 2)
+        unsigned int file_name_length = console::text_width(file.name);
+        if (file_name_length > name_width)
             row_data += file.name.substr(0, name_width - 2) + "..";
         else if (file.type == fs::file_type::directory)
             row_data += file.name + '/' + std::string(name_width - file_name_length - 1, ' ');
@@ -299,26 +333,27 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         // File size
-        const int size_width {10};
-        std::string temp;
-        if (human_readable && file.length >= 1024) {
+        std::stringstream temp;
+        if (human_readable) {
+            temp << std::setw(size_width - 1);  // only the number part
             if (file.length >= ce_pow(1024, 3))
-                temp = std::to_string(file.length / ce_pow(1024, 3)) + "G";
+                temp << file.length / ce_pow(1024, 3) << "G";
             else if (file.length >= ce_pow(1024, 2))
-                temp = std::to_string(file.length / ce_pow(1024, 2)) + "M";
+                temp << file.length / ce_pow(1024, 2) << "M";
+            else if (file.length >= 1024)
+                temp << file.length / 1024 << "K";
             else
-                temp = std::to_string(file.length / 1024) + "K";
+                temp << file.length << " ";
         }
         else {
-            temp = std::to_string(file.length);
+            temp << std::setw(size_width) << file.length;
         }
-        row_data += temp + std::string(size_width - temp.length(), ' ');
+        row_data += temp.str();
         row_data += " ";
 
         double percent = (file.length / total_length) * 100.0;
 
         // Progress bar
-        int chars_left = columns - console::text_width(row_data);
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
