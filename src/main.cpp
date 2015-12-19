@@ -5,6 +5,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <locale>
 #include <string>
 #include <vector>
 #include <map>
@@ -29,6 +30,7 @@ void print_usage(const std::string &application) {
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
     std::cout << "  -s <...>    Sort by property; 'size', 'name', 'atime', 'mtime', 'ctime'. Default is 'size'." << std::endl;
     std::cout << "  -t <ms>     File/directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
+    std::cout << "  --tsep=<c>  Add thousands seperator. Default is none." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
     std::cout << "                  by Rikard Johansson, 2015. Licensed under " PROGRAM_LICENSE "." << std::endl;
@@ -141,6 +143,14 @@ int main(int argc, const char *argv[]) {
     bool colorize {false};
     bool force_read_stdin {false};
     bool skip_next_arg {false};
+
+    struct numpt_t : std::numpunct<char> {
+        char tsep {'\0'};
+        numpt_t() : std::numpunct<char>(1) {}
+        char do_thousands_sep() const { return tsep; }
+        std::string do_grouping() const { return "\03"; }
+    } numpt;
+
     for (const auto &arg: console::parse_args(argc, argv)) {
         if (skip_next_arg) {
             skip_next_arg = false;
@@ -187,6 +197,9 @@ int main(int argc, const char *argv[]) {
         else if (arg.key == "-t" && arg.next) {
             timeout_ms = std::stoi(arg.next->key);
             skip_next_arg = true;
+        }
+        else if (arg.key == "--tsep") {
+            numpt.tsep = arg.value[0];
         }
         else if (arg.value.length() == 0) {
             std::string potential_target = fs::absolute_path(arg.key);
@@ -273,6 +286,12 @@ int main(int argc, const char *argv[]) {
         columns = temp.cols;
     }
 
+    std::locale locale;
+    if (numpt.tsep != '\0')
+        locale = std::locale(std::locale(), &numpt);
+    else
+        locale = std::locale("C");
+
     // Find out the maximum width for filenames, maximum size for files
     unsigned int name_width {0};
     unsigned int size_width {0};
@@ -284,6 +303,7 @@ int main(int argc, const char *argv[]) {
             name_width = std::max(name_width, console::text_width(file.name));
 
             std::stringstream temp;
+            temp.imbue(locale);
             if (human_readable && file.length >= 1024) {
                 if (file.length >= ce_pow(1024, 3))
                     temp << file.length / ce_pow(1024, 3);
@@ -334,6 +354,7 @@ int main(int argc, const char *argv[]) {
 
         // File size
         std::stringstream temp;
+        temp.imbue(locale);
         if (human_readable) {
             temp << std::setw(size_width - 1);  // only the number part
             if (file.length >= ce_pow(1024, 3))
