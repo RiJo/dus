@@ -3,7 +3,9 @@
 #include "pipes.hpp"
 #include "console.hpp"
 
+#include <iomanip>
 #include <iostream>
+#include <locale>
 #include <string>
 #include <vector>
 #include <map>
@@ -28,6 +30,7 @@ void print_usage(const std::string &application) {
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
     std::cout << "  -s <...>    Sort by property; 'size', 'name', 'atime', 'mtime', 'ctime'. Default is 'size'." << std::endl;
     std::cout << "  -t <ms>     File/directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
+    std::cout << "  --tsep=<c>  Add thousands seperator. Default is none." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
     std::cout << "                  by Rikard Johansson, 2015. Licensed under " PROGRAM_LICENSE "." << std::endl;
@@ -140,6 +143,14 @@ int main(int argc, const char *argv[]) {
     bool colorize {false};
     bool force_read_stdin {false};
     bool skip_next_arg {false};
+
+    struct numpt_t : std::numpunct<char> {
+        char tsep {'\0'};
+        numpt_t() : std::numpunct<char>(1) {}
+        char do_thousands_sep() const { return tsep; }
+        std::string do_grouping() const { return "\03"; }
+    } numpt;
+
     for (const auto &arg: console::parse_args(argc, argv)) {
         if (skip_next_arg) {
             skip_next_arg = false;
@@ -186,6 +197,9 @@ int main(int argc, const char *argv[]) {
         else if (arg.key == "-t" && arg.next) {
             timeout_ms = std::stoi(arg.next->key);
             skip_next_arg = true;
+        }
+        else if (arg.key == "--tsep") {
+            numpt.tsep = arg.value[0];
         }
         else if (arg.value.length() == 0) {
             std::string potential_target = fs::absolute_path(arg.key);
@@ -272,7 +286,48 @@ int main(int argc, const char *argv[]) {
         columns = temp.cols;
     }
 
+    std::locale locale;
+    if (numpt.tsep != '\0')
+        locale = std::locale(std::locale(), &numpt);
+    else
+        locale = std::locale("C");
+
+    // Find out the maximum width for filenames, maximum size for files
+    unsigned int name_width {0};
+    unsigned int size_width {0};
+    {
+        for (auto const &file: files) {
+            if (count == 0)
+                break;
+
+            name_width = std::max(name_width, console::text_width(file.name));
+
+            std::stringstream temp;
+            temp.imbue(locale);
+            if (human_readable && file.length >= 1024) {
+                if (file.length >= ce_pow(1024, 3))
+                    temp << file.length / ce_pow(1024, 3);
+                else if (file.length >= ce_pow(1024, 2))
+                    temp << file.length / ce_pow(1024, 2);
+                else if (file.length >= 1024)
+                    temp << file.length / 1024;
+            }
+            else
+                temp << file.length;
+            size_width = std::max(size_width, (unsigned int) temp.str().length());
+
+            if (count > 0)
+                count--;
+        }
+
+        const unsigned int max_name_width {35};
+        name_width = std::min(max_name_width, name_width);
+        if (human_readable)
+            size_width++;  // 1 for unit or space
+    }
+
     // Dump result
+    const int chars_left = columns - (1 + name_width + 1 + size_width + 1);
     for (auto const &file: files) {
         if (count == 0)
             break;
@@ -288,9 +343,8 @@ int main(int argc, const char *argv[]) {
             row_data += " ";
 
         // Filename
-        const int name_width {35};
-        int file_name_length = console::text_width(file.name);
-        if (file_name_length >= name_width - 2)
+        unsigned int file_name_length = console::text_width(file.name);
+        if (file_name_length > name_width)
             row_data += file.name.substr(0, name_width - 2) + "..";
         else if (file.type == fs::file_type::directory)
             row_data += file.name + '/' + std::string(name_width - file_name_length - 1, ' ');
@@ -299,26 +353,28 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         // File size
-        const int size_width {10};
-        std::string temp;
-        if (human_readable && file.length >= 1024) {
+        std::stringstream temp;
+        temp.imbue(locale);
+        if (human_readable) {
+            temp << std::setw(size_width - 1);  // only the number part
             if (file.length >= ce_pow(1024, 3))
-                temp = std::to_string(file.length / ce_pow(1024, 3)) + "G";
+                temp << file.length / ce_pow(1024, 3) << "G";
             else if (file.length >= ce_pow(1024, 2))
-                temp = std::to_string(file.length / ce_pow(1024, 2)) + "M";
+                temp << file.length / ce_pow(1024, 2) << "M";
+            else if (file.length >= 1024)
+                temp << file.length / 1024 << "K";
             else
-                temp = std::to_string(file.length / 1024) + "K";
+                temp << file.length << " ";
         }
         else {
-            temp = std::to_string(file.length);
+            temp << std::setw(size_width) << file.length;
         }
-        row_data += temp + std::string(size_width - temp.length(), ' ');
+        row_data += temp.str();
         row_data += " ";
 
         double percent = (file.length / total_length) * 100.0;
 
         // Progress bar
-        int chars_left = columns - console::text_width(row_data);
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
         int bar_width = (progress_width - 3) * (file.length / total_length);
         row_data += "[";
