@@ -375,11 +375,12 @@ int main(int argc, const char *argv[]) {
         row_data += temp.str();
         row_data += " ";
 
-        double percent = (total_length > 0) ? (file.length / (double)total_length) * 100.0 : 0.0;
+        double factor = (total_length > 0) ? (file.length / (double)total_length) : 0.0;
+        double percent = factor * 100.0;
 
         // Progress bar
         int progress_width = chars_left - 4 /* last 4 chars for "xxx%" */;
-        int bar_width = (progress_width - 3) * (percent);
+        int bar_width = (progress_width - 3) * factor;
         row_data += "[";
         if (percent >= 50)
             row_data += console::color::red();
