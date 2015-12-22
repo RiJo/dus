@@ -220,13 +220,13 @@ int main(int argc, const char *argv[]) {
     if (targets.size() == 0 || force_read_stdin) {
         for (auto const &target: pipes::read_stdin(stdin_separator, -1)) {
             if (target.length() > 0)
-                targets.insert(std::move(fs::absolute_path(target)));
+                targets.insert(fs::absolute_path(target));
         }
     }
 
     // Use current working directory as secondary default target
     if (targets.size() == 0) {
-        targets.insert(std::move(fs::current_working_directory()));
+        targets.insert(fs::current_working_directory());
     }
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
@@ -238,7 +238,7 @@ int main(int argc, const char *argv[]) {
                 for (auto const &file:fs::read_directory(target, enter_directory, true))
                     result.push_back(std::move(file));
             else
-                result.push_back(std::move(fs::read_file(target)));
+                result.push_back(fs::read_file(target));
         }
         return result;
     });
@@ -269,7 +269,7 @@ int main(int argc, const char *argv[]) {
         return order_inverted ? first.name > second.name : first.name < second.name;
     };
     if (!comparators.count(order_by)) {
-        std::cerr << console::color::red << PROGRAM_NAME << ": Undefined sort type: \"" << order_by << "\"" << console::color::reset << std::endl;
+        std::cerr << console::color::red << PROGRAM_NAME << ": Undefined sort type: \"" << order_by << "\"" << console::color::reset << std::endl; // TODO: add valid ones to message
         return 2;
     }
     std::sort(files.begin(), files.end(), comparators[order_by]);

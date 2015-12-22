@@ -29,7 +29,7 @@ namespace pipes {
             if (std::cin.fail())
                 throw std::runtime_error("stdin read failure.");
             std::cin.getline(buffer, buffer_size, delimiter);
-            result.push_back(std::move(std::string(buffer)));
+            result.push_back(std::string(buffer));
         }
         return result;
     }
