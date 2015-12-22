@@ -272,7 +272,7 @@ int main(int argc, const char *argv[]) {
         std::cerr << console::color::red << PROGRAM_NAME << ": Undefined sort type: \"" << order_by << "\"" << console::color::reset << std::endl; // TODO: add valid ones to message
         return 2;
     }
-    std::sort(files.begin(), files.end(), comparators[order_by]);
+    std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
 
     // Find highest value (used for percentage)
     unsigned int total_length {0};
