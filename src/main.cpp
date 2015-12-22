@@ -33,7 +33,7 @@ void print_usage(const std::string &application) {
     std::cout << "  --tsep=<c>  Add thousands seperator. Default is none." << std::endl;
     std::cout << "  --version   Print out version information." << std::endl;
     std::cout << std::endl;
-    std::cout << "                  by Rikard Johansson, 2015. Licensed under " PROGRAM_LICENSE "." << std::endl;
+    std::cout << "                  Copyright (C) " PROGRAM_YEAR ". Licensed under " PROGRAM_LICENSE "." << std::endl;
 }
 
 int cmp_natural_order(const std::string &str1, const std::string &str2) {
