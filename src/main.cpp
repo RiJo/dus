@@ -300,7 +300,10 @@ int main(int argc, const char *argv[]) {
             if (count == 0)
                 break;
 
-            name_width = std::max(name_width, console::text_width(file.name));
+            if (file.type == fs::file_type::directory)
+                name_width = std::max(name_width, console::text_width(file.name) + 1); // Directories are suffixed with '/'
+            else
+                name_width = std::max(name_width, console::text_width(file.name));
 
             std::stringstream temp;
             temp.imbue(locale);
