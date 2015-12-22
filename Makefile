@@ -18,6 +18,9 @@ all: $(PROGRAM)
 $(PROGRAM): $(SOURCES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(LDLIBS) $< -o $@
 
+debug: CXXFLAGS += -g -D=DEBUG
+debug: all
+
 clean:
 	$(RM) $(PROGRAM)
 .PHONY: clean
