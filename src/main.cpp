@@ -274,11 +274,6 @@ int main(int argc, const char *argv[]) {
     }
     std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
 
-    // Find highest value (used for percentage)
-    unsigned int total_length {0};
-    for (const auto &file: files)
-        total_length += file.length;
-
     // Determine tty width
     int columns;
     {
@@ -293,12 +288,15 @@ int main(int argc, const char *argv[]) {
         locale = std::locale("C");
 
     // Find out the maximum width for filenames, maximum size for files
+    unsigned int total_length {0};
     unsigned int name_width {0};
     unsigned int size_width {0};
     {
         for (auto const &file: files) {
             if (count == 0)
                 break;
+
+            total_length += file.length;
 
             if (file.type == fs::file_type::directory)
                 name_width = std::max(name_width, console::text_width(file.name) + 1); // Directories are suffixed with '/'
