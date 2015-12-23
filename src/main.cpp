@@ -292,8 +292,9 @@ int main(int argc, const char *argv[]) {
     unsigned int name_width {0};
     unsigned int size_width {0};
     {
+        int items_left = {count};
         for (auto const &file: files) {
-            if (count == 0)
+            if (items_left == 0)
                 break;
 
             total_length += file.length;
@@ -317,8 +318,8 @@ int main(int argc, const char *argv[]) {
                 temp << file.length;
             size_width = std::max(size_width, (unsigned int) temp.str().length());
 
-            if (count > 0)
-                count--;
+            if (items_left > 0)
+                items_left--;
         }
 
         const unsigned int max_name_width {35};
