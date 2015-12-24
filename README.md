@@ -65,7 +65,7 @@ Everything is written in C++14 and is simply compiled, installed and uninstalled
 ### v0.0.8
  * Fixed runtime error in v0.0.7
 
- ### v0.0.9
+### v0.0.9
  * Now compiles using clang
  * Fixed regression in v0.0.7 where '-c' option didn't work
 
