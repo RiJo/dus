@@ -274,6 +274,11 @@ int main(int argc, const char *argv[]) {
     }
     std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
 
+    // Find highest value (used for percentage)
+    unsigned int total_length {0};
+    for (const auto &file: files)
+        total_length += file.length;
+
     // Strip exceeding items
     if (count >= 0 && count < (int)files.size())
         files.erase(files.begin() + count, files.end());
@@ -292,38 +297,33 @@ int main(int argc, const char *argv[]) {
         locale = std::locale("C");
 
     // Find out the maximum width for filenames, maximum size for files
-    unsigned int total_length {0};
     unsigned int name_width {0};
     unsigned int size_width {0};
-    {
-        for (auto const &file: files) {
-            total_length += file.length;
+    for (auto const &file: files) {
+        if (file.type == fs::file_type::directory)
+            name_width = std::max(name_width, console::text_width(file.name) + 1); // Directories are suffixed with '/'
+        else
+            name_width = std::max(name_width, console::text_width(file.name));
 
-            if (file.type == fs::file_type::directory)
-                name_width = std::max(name_width, console::text_width(file.name) + 1); // Directories are suffixed with '/'
-            else
-                name_width = std::max(name_width, console::text_width(file.name));
-
-            std::stringstream temp;
-            temp.imbue(locale);
-            if (human_readable && file.length >= 1024) {
-                if (file.length >= ce_pow(1024, 3))
-                    temp << file.length / ce_pow(1024, 3);
-                else if (file.length >= ce_pow(1024, 2))
-                    temp << file.length / ce_pow(1024, 2);
-                else if (file.length >= 1024)
-                    temp << file.length / 1024;
-            }
-            else
-                temp << file.length;
-            size_width = std::max(size_width, (unsigned int) temp.str().length());
+        std::stringstream temp;
+        temp.imbue(locale);
+        if (human_readable && file.length >= 1024) {
+            if (file.length >= ce_pow(1024, 3))
+                temp << file.length / ce_pow(1024, 3);
+            else if (file.length >= ce_pow(1024, 2))
+                temp << file.length / ce_pow(1024, 2);
+            else if (file.length >= 1024)
+                temp << file.length / 1024;
         }
-
-        const unsigned int max_name_width {35};
-        name_width = std::min(max_name_width, name_width);
-        if (human_readable)
-            size_width++;  // 1 for unit or space
+        else
+            temp << file.length;
+        size_width = std::max(size_width, (unsigned int) temp.str().length());
     }
+
+    const unsigned int max_name_width {35};
+    name_width = std::min(max_name_width, name_width);
+    if (human_readable)
+        size_width++;  // 1 for unit or space
 
     // Dump result
     const int chars_left = columns - (1 + name_width + 1 + size_width + 1);
