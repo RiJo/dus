@@ -274,6 +274,10 @@ int main(int argc, const char *argv[]) {
     }
     std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
 
+    // Strip exceeding items
+    if (count >= 0 && count < (int)files.size())
+        files.erase(files.begin() + count, files.end());
+
     // Determine tty width
     int columns;
     {
@@ -292,11 +296,7 @@ int main(int argc, const char *argv[]) {
     unsigned int name_width {0};
     unsigned int size_width {0};
     {
-        int items_left = {count};
         for (auto const &file: files) {
-            if (items_left == 0)
-                break;
-
             total_length += file.length;
 
             if (file.type == fs::file_type::directory)
@@ -317,9 +317,6 @@ int main(int argc, const char *argv[]) {
             else
                 temp << file.length;
             size_width = std::max(size_width, (unsigned int) temp.str().length());
-
-            if (items_left > 0)
-                items_left--;
         }
 
         const unsigned int max_name_width {35};
@@ -331,9 +328,6 @@ int main(int argc, const char *argv[]) {
     // Dump result
     const int chars_left = columns - (1 + name_width + 1 + size_width + 1);
     for (auto const &file: files) {
-        if (count == 0)
-            break;
-
         std::string row_data {""};
 
         // Prefix
@@ -404,9 +398,6 @@ int main(int argc, const char *argv[]) {
             std::cout << row_data << std::endl;
         else
             std::cerr << console::color::red << row_data << console::color::reset << std::endl;
-
-        if (count > 0)
-            count--;
     }
 
     return 0;
