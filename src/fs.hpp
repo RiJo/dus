@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h> // getcwd()
+#include <stdlib.h> // getenv()
 
 namespace fs {
     enum class file_type {
@@ -104,6 +105,8 @@ namespace fs {
             return "";
         if (path[0] == '/')
             return path; // Already absolute
+        if (path[0] == '~')
+            return getenv("HOME") + path.substr(1); // Replace home directory
         if (path[0] != '.')
             return current_working_directory() + '/' + path; // Assume current working directory
         if (path == ".")
@@ -137,7 +140,7 @@ namespace fs {
         fi.name = fs::basename(path);
 
         struct stat sb;
-        if (lstat(path.c_str(), &sb) == -1) {
+        if (lstat((fi.path + '/' + fi.name).c_str(), &sb) == -1) {
             // Failed to stat file
             switch (errno) {
                 case ENOENT: // A component of path does not name an existing file or path is an empty string.
