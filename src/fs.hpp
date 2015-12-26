@@ -21,9 +21,16 @@ namespace fs {
         unknown
     };
 
+    enum class file_error {
+        none,
+        invalid_path,
+        file_not_found,
+        permission_denied,
+        undefined
+    };
+
     struct file_info {
-        bool authorized;
-        bool exists;
+        fs::file_error error;
         fs::file_type type;
         std::string path;
         std::string name;
@@ -132,14 +139,29 @@ namespace fs {
         struct stat sb;
         if (lstat(path.c_str(), &sb) == -1) {
             // Failed to stat file
-            fi.exists = (errno != ENOENT);
-            fi.authorized = (errno != EACCES);
+            switch (errno) {
+                case ENOENT: // A component of path does not name an existing file or path is an empty string.
+                    fi.error = fs::file_error::file_not_found;
+                    break;
+                case EACCES: // A component of the path prefix denies search permission.
+                    fi.error = fs::file_error::permission_denied;
+                    break;
+                case ELOOP: // A loop exists in symbolic links encountered during resolution of the path argument.
+                case ENAMETOOLONG: // The length of a pathname exceeds {PATH_MAX} or a pathname component is longer than {NAME_MAX}.
+                case ENOTDIR: // A component of the path prefix is not a directory.
+                    fi.error = fs::file_error::invalid_path;
+                    break;
+                case EIO: // An error occurred while reading from the file system.
+                case EOVERFLOW: // The file size in bytes or the number of blocks allocated cannot be represented correctly in the structure pointed to by buf.
+                    fi.error = fs::file_error::undefined;
+                    break;
+            }
             fi.length = 0;
             fi.type = fs::file_type::unknown;
             return fi;
         }
 
-        fi.exists = true;
+        fi.error = fs::file_error::none;
         fi.length = sb.st_size;
         switch (sb.st_mode & S_IFMT) {
             case S_IFBLK:
@@ -174,21 +196,19 @@ namespace fs {
         fi.modify_time = sb.st_mtime;
         fi.change_time = sb.st_ctime;
 
-        if (fi.type == fs::file_type::directory)
-            fi.authorized = fs::is_authorized(fi, fs::permission_flag::read);
-        else
-            fi.authorized = true;
+        if (fi.type == fs::file_type::directory && !fs::is_authorized(fi, fs::permission_flag::read))
+            fi.error = fs::file_error::permission_denied;
         return fi;
     }
 
     bool exists(const std::string &path) {
         fs::file_info fi = read_file(path);
-        return fi.exists;
+        return (fi.error != fs::file_error::file_not_found && fi.error != fs::file_error::invalid_path);
     }
 
     template<fs::file_type T> bool is_type(const std::string &path) {
         fs::file_info fi = read_file(path);
-        return fi.exists && fi.type == T;
+        return (fi.error == fs::file_error::none && fi.type == T);
     }
 
     std::vector<fs::file_info> read_directory(const std::string &path, bool enter_directory, bool calculate_directory_length) {
@@ -209,8 +229,8 @@ namespace fs {
         if (!enter_directory) {
             if (calculate_directory_length) {
                 for (const auto &fi_child: read_directory(path, true, true)) {
-                    if (!fi_child.authorized)
-                        fi_root.authorized = false;
+                    if (fi_child.error == fs::file_error::permission_denied)
+                        fi_root.error = fs::file_error::permission_denied;
                     fi_root.length += fi_child.length;
                 }
             }
@@ -228,8 +248,8 @@ namespace fs {
 
             if (calculate_directory_length && fi_child.type == fs::file_type::directory) {
                 for (const auto &fi_grandchild: read_directory(path + '/' + filename, enter_directory, true)) {
-                    if (!fi_grandchild.authorized)
-                        fi_child.authorized = false;
+                    if (fi_grandchild.error == fs::file_error::permission_denied)
+                        fi_child.error = fs::file_error::permission_denied;
                     fi_child.length += fi_grandchild.length;
                 }
             }
