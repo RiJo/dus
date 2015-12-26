@@ -331,7 +331,7 @@ int main(int argc, const char *argv[]) {
         std::string row_data {""};
 
         // Prefix
-        if (!file.authorized || !file.exists)
+        if (file.error != fs::file_error::none)
             row_data += console::color::red() + "!" + console::color::reset();
         else if (file.type == fs::file_type::directory)
             row_data += "*";
@@ -394,10 +394,7 @@ int main(int argc, const char *argv[]) {
             row_data += " ";
         row_data += std::to_string(static_cast<int>(percent)) + "%";
 
-        if (file.authorized)
-            std::cout << row_data << std::endl;
-        else
-            std::cerr << console::color::red << row_data << console::color::reset << std::endl;
+        std::cout << row_data << std::endl;
     }
 
     return 0;
