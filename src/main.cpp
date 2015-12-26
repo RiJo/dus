@@ -280,7 +280,7 @@ int main(int argc, const char *argv[]) {
         total_length += file.length;
 
     // Strip exceeding items
-    if (count >= 0 && count < (int)files.size())
+    if (count >= 0 && static_cast<unsigned int>(count) < files.size())
         files.erase(files.begin() + count, files.end());
 
     // Determine tty width
@@ -368,7 +368,7 @@ int main(int argc, const char *argv[]) {
         row_data += temp.str();
         row_data += " ";
 
-        double factor = (total_length > 0) ? (file.length / (double)total_length) : 0.0;
+        double factor = (total_length > 0) ? (static_cast<double>(file.length) / static_cast<double>(total_length)) : 0.0;
         double percent = factor * 100.0;
 
         // Progress bar
@@ -388,11 +388,11 @@ int main(int argc, const char *argv[]) {
         row_data += "]";
 
         // Percentage
-        if ((int)percent < 10)
+        if (static_cast<int>(percent) < 10)
             row_data += "  ";
-        else if ((int)percent < 100)
+        else if (static_cast<int>(percent) < 100)
             row_data += " ";
-        row_data += std::to_string((int)percent) + "%";
+        row_data += std::to_string(static_cast<int>(percent)) + "%";
 
         if (file.authorized)
             std::cout << row_data << std::endl;
