@@ -331,7 +331,7 @@ int main(int argc, const char *argv[]) {
         std::string row_data {""};
 
         // Prefix
-        if (!file.authorized)
+        if (!file.authorized || !file.exists)
             row_data += console::color::red() + "!" + console::color::reset();
         else if (file.type == fs::file_type::directory)
             row_data += "*";
