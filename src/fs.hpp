@@ -133,7 +133,7 @@ namespace fs {
         if (lstat(path.c_str(), &sb) == -1) {
             // Failed to stat file
             fi.exists = (errno != ENOENT);
-            fi.authorized = (errno == EACCES);
+            fi.authorized = (errno != EACCES);
             fi.length = 0;
             fi.type = fs::file_type::unknown;
             return fi;
