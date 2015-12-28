@@ -16,8 +16,7 @@ namespace threading {
         volatile bool destruct {false};
         std::vector<std::thread> threads {};
         std::queue<thread_pool_task_t> task_queue {};
-
-        std::condition_variable cv {};
+        std::condition_variable task_notifier {};
         std::mutex mutex {};
 
         void thread_loop(unsigned int thread_index) {
@@ -27,7 +26,7 @@ namespace threading {
                 thread_lock.lock();
                 if (task_queue.size() == 0) {
                     // Wait for new items
-                    cv.wait(thread_lock);
+                    task_notifier.wait(thread_lock);
 
                     if (task_queue.size() == 0 || destruct) {
                         thread_lock.unlock();
@@ -62,7 +61,7 @@ namespace threading {
                 destruct = true;
                 {
                     std::lock_guard<std::mutex> global_lock(mutex);
-                    cv.notify_all();
+                    task_notifier.notify_all();
                 }
 
                 for (auto &thread: threads)
@@ -75,7 +74,7 @@ namespace threading {
                     std::lock_guard<std::mutex> global_lock(mutex);
                     task_queue.push(task);
                 }
-                cv.notify_one();
+                task_notifier.notify_one();
             }
 
             void add(std::initializer_list<thread_pool_task_t> args) {
@@ -84,7 +83,7 @@ namespace threading {
                     for (auto task: args)
                         task_queue.push(task);
                 }
-                cv.notify_all();
+                task_notifier.notify_all();
             }
 
             template< typename... T>
@@ -92,7 +91,6 @@ namespace threading {
                 {
                     std::lock_guard<std::mutex> global_lock(mutex);
                     task_queue.push(task);
-                    //std::cout << "THREAD TASK ENQUEUED" << std::endl;
                 }
                 add(args...);
             }
