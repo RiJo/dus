@@ -9,7 +9,7 @@
 
 namespace threading {
     struct thread_pool_task_t {
-        std::function<void ()> task;
+        std::function<void (std::function<bool ()>)> callback;
     };
 
     class thread_pool {
@@ -19,7 +19,34 @@ namespace threading {
         std::condition_variable task_notifier {};
         std::mutex mutex {};
 
-        void thread_loop(unsigned int thread_index) {
+        bool thread_yield(const unsigned int thread_index) {
+            std::unique_lock<std::mutex> thread_lock(mutex, std::defer_lock);
+            thread_lock.lock();
+            if (task_queue.size() == 0) {
+                thread_lock.unlock();
+                return false;
+            }
+
+            // Pop next item
+            auto item = task_queue.front();
+            task_queue.pop();
+            thread_lock.unlock();
+
+            // Execute task
+            execute_task(thread_index, item);
+            return true;
+        }
+
+        void execute_task(const unsigned int thread_index, const thread_pool_task_t &task) {
+            try {
+                task.callback([&] () { return thread_yield(thread_index); });
+            }
+            catch (...) {
+                // TODO: notify?
+            }
+        }
+
+        void thread_loop(const unsigned int thread_index) {
             std::unique_lock<std::mutex> thread_lock(mutex, std::defer_lock);
 
             while (!destruct) {
@@ -40,11 +67,7 @@ namespace threading {
                 thread_lock.unlock();
 
                 // Execute task
-                try {
-                    item.task();
-                }
-                catch (...) {
-                }
+                execute_task(thread_index, item);
             }
         }
 
