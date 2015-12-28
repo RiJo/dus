@@ -1,4 +1,5 @@
 #include "dus.hpp"
+#include "thread_pool.hpp"
 #include "fs.hpp"
 #include "pipes.hpp"
 #include "console.hpp"
@@ -27,6 +28,7 @@ void print_usage(const std::string &application) {
     std::cout << "  -h          Print human readable sizes (e.g., 1K 234M 5G)." << std::endl;
     std::cout << "  --help      Print this help and exit." << std::endl;
     std::cout << "  -i          Inverted/reverted order of listed result. Default order is set by sort: -s." << std::endl;
+    std::cout << "  -j <x>      Number of parallel jobs (threads) used while reading files and directory information. Default is 1." << std::endl;
     std::cout << "  -n          Enable natural sort order if sort order is a string representation. Default is disabled." << std::endl;
     std::cout << "  -s <...>    Sort by property; 'size', 'name', 'atime', 'mtime', 'ctime'. Default is 'size'." << std::endl;
     std::cout << "  -t <ms>     File/directory parse timeout given in milliseconds. Default is infinite (-1)." << std::endl;
@@ -139,6 +141,7 @@ int main(int argc, const char *argv[]) {
     bool human_readable {false};
     bool natural_order {false};
     int timeout_ms {-1};
+    unsigned int parse_threads {1};
     char stdin_separator {'\n'};
     bool colorize {false};
     bool force_read_stdin {false};
@@ -172,7 +175,7 @@ int main(int argc, const char *argv[]) {
             stdin_separator = '\0';
         }
         else if (arg.key == "-c" && arg.next) {
-            count = std::stoi(arg.next->key);
+            count = std::stoi(arg.next->key); // TODO: sanity check
             skip_next_arg = true;
         }
         else if (arg.key == "--color") {
@@ -187,6 +190,10 @@ int main(int argc, const char *argv[]) {
         else if (arg.key == "-i") {
             order_inverted = !order_inverted;
         }
+        else if (arg.key == "-j" && arg.next) {
+            parse_threads = std::stoi(arg.next->key); // TODO: sanity check
+            skip_next_arg = true;
+        }
         else if (arg.key == "-n") {
             natural_order = true;
         }
@@ -195,7 +202,7 @@ int main(int argc, const char *argv[]) {
             skip_next_arg = true;
         }
         else if (arg.key == "-t" && arg.next) {
-            timeout_ms = std::stoi(arg.next->key);
+            timeout_ms = std::stoi(arg.next->key); // TODO: sanity check
             skip_next_arg = true;
         }
         else if (arg.key == "--tsep") {
@@ -231,15 +238,26 @@ int main(int argc, const char *argv[]) {
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
     enter_directory &= targets.size() == 1; // Only enter directory if it's the only target
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [targets, enter_directory] {
-        std::vector<fs::file_info> result;
+    threading::thread_pool tp(parse_threads);
+    std::vector<fs::file_info> result;
+    std::mutex result_mutex;
+    std::function<void (std::function<bool ()>, std::vector<fs::file_info>)> file_parse_callback = [&] (std::function<bool ()> yield, std::vector<fs::file_info> files) {
+        for (auto const &file: files) {
+            if (file.type == fs::file_type::directory)
+                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, fs::read_directory(file.path + '/' + file.name, enter_directory, true)); }});
+            std::lock_guard<std::mutex> result_lock(result_mutex);
+            result.push_back(std::move(file));
+        }
+        while(yield());
+    };
+    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [&] {
         for (auto const &target: targets) {
             if (fs::is_type<fs::file_type::directory>(target))
-                for (auto const &file:fs::read_directory(target, enter_directory, true))
-                    result.push_back(std::move(file));
-            else
-                result.push_back(fs::read_file(target));
+                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, fs::read_directory(target, enter_directory, true)); }});
+            std::lock_guard<std::mutex> result_lock(result_mutex);
+            result.push_back(fs::read_file(target));
         }
+        tp.wait();
         return result;
     });
 
