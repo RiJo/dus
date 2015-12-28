@@ -28,12 +28,12 @@ namespace threading {
             }
 
             // Pop next item
-            auto item = task_queue.front();
+            auto task = task_queue.front();
             task_queue.pop();
             thread_lock.unlock();
 
             // Execute task
-            execute_task(thread_index, item);
+            execute_task(thread_index, task);
             return true;
         }
 
@@ -62,12 +62,12 @@ namespace threading {
                 }
 
                 // Pop next item
-                auto item = task_queue.front();
+                auto task = task_queue.front();
                 task_queue.pop();
                 thread_lock.unlock();
 
                 // Execute task
-                execute_task(thread_index, item);
+                execute_task(thread_index, task);
             }
         }
 
@@ -116,6 +116,12 @@ namespace threading {
                     task_queue.push(task);
                 }
                 add(args...);
+            }
+
+            void wait() {
+                // TODO: count active threads
+                while(thread_yield(std::numeric_limits<unsigned int>::max()));
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
     };
 }
