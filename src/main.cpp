@@ -241,23 +241,38 @@ int main(int argc, const char *argv[]) {
     threading::thread_pool tp(parse_threads);
     std::vector<fs::file_info> result;
     std::mutex result_mutex;
-    std::function<void (std::function<bool ()>, std::vector<fs::file_info>)> file_parse_callback = [&] (std::function<bool ()> yield, std::vector<fs::file_info> files) {
-        for (auto const &file: files) {
-            if (file.type == fs::file_type::directory)
-                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, fs::read_directory(file.path + '/' + file.name, enter_directory, true)); }});
-            std::lock_guard<std::mutex> result_lock(result_mutex);
-            result.push_back(std::move(file));
+    std::function<void (std::function<bool ()>, unsigned int, fs::file_info &, std::vector<fs::file_info>)> file_parse_callback = [&] (std::function<bool ()> yield, unsigned int depth, fs::file_info &parent, std::vector<fs::file_info> files) {
+        for (auto &file: files) {
+            if (file.type == fs::file_type::directory) {
+                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); }});
+                while(yield());
+            }
+
+            parent.length += file.length;
+
+            if (depth == 0)
+            {
+                std::lock_guard<std::mutex> result_lock(result_mutex);
+                result.push_back(file);
+            }
         }
-        while(yield());
+
     };
     std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [&] {
         for (auto const &target: targets) {
-            if (fs::is_type<fs::file_type::directory>(target))
-                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, fs::read_directory(target, enter_directory, true)); }});
-            std::lock_guard<std::mutex> result_lock(result_mutex);
-            result.push_back(fs::read_file(target));
+            fs::file_info parent = fs::read_file(target);
+            if (fs::is_type<fs::file_type::directory>(target)) {
+                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(target, enter_directory, false)); }});
+                tp.wait();
+            }
+
+            if (!enter_directory)
+            {
+                std::lock_guard<std::mutex> result_lock(result_mutex);
+                result.push_back(parent);
+            }
         }
-        tp.wait();
+
         return result;
     });
 
