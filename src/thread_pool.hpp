@@ -14,6 +14,7 @@ namespace threading {
 
     class thread_pool {
         volatile bool destruct {false};
+        volatile unsigned int active_threads {0};
         std::vector<std::thread> threads {};
         std::queue<thread_pool_task_t> task_queue {};
         std::condition_variable task_notifier {};
@@ -61,6 +62,8 @@ namespace threading {
                     }
                 }
 
+                active_threads++;
+
                 // Pop next item
                 auto task = task_queue.front();
                 task_queue.pop();
@@ -68,6 +71,10 @@ namespace threading {
 
                 // Execute task
                 execute_task(thread_index, task);
+
+                thread_lock.lock();
+                active_threads--;
+                thread_lock.unlock();
             }
         }
 
@@ -124,9 +131,16 @@ namespace threading {
             }
 
             void wait() {
-                // TODO: count active threads
-                while(thread_yield(std::numeric_limits<unsigned int>::max()));
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                // TODO: replace while-sleep w/ event signal on change
+                while(true) {
+                    {
+                        std::lock_guard<std::mutex> global_lock(mutex);
+                        if (active_threads == 0 && task_queue.size() == 0)
+                            break;
+                    }
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                }
             }
     };
 }
