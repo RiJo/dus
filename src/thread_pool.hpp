@@ -101,6 +101,11 @@ namespace threading {
             }
 
             void add(std::initializer_list<thread_pool_task_t> args) {
+                if (args.size() == 0)
+                    return;
+                if (args.size() == 1)
+                    return add(*args.begin());
+
                 {
                     std::lock_guard<std::mutex> global_lock(mutex);
                     for (auto task: args)
