@@ -117,7 +117,7 @@ namespace fs {
         return current_working_directory() + '/' + path;
     }
 
-    bool is_authorized(fs::file_info file, fs::permission_flag evaluation) {
+    bool is_authorized(const fs::file_info &file, const fs::permission_flag &evaluation) {
         if (((file.mode & 0x07) & evaluation) == evaluation)
             return true;
 
