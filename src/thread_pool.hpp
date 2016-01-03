@@ -121,12 +121,9 @@ namespace threading {
                 task_notifier.notify_all();
             }
 
-            template< typename... T>
+            template<typename... T>
             void add(const thread_pool_task_t &task, T... args) {
-                {
-                    std::lock_guard<std::mutex> global_lock(mutex);
-                    task_queue.push(task);
-                }
+                add(task);
                 add(args...);
             }
 
