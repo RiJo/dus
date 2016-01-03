@@ -127,15 +127,16 @@ namespace threading {
                 add(args...);
             }
 
+            bool idle() {
+                std::lock_guard<std::mutex> global_lock(mutex);
+                return (active_threads == 0 && task_queue.size() == 0);
+            }
+
             void wait() {
                 // TODO: replace while-sleep w/ event signal on change
                 while(true) {
-                    {
-                        std::lock_guard<std::mutex> global_lock(mutex);
-                        if (active_threads == 0 && task_queue.size() == 0)
-                            break;
-                    }
-
+                    if (idle())
+                        break;
                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 }
             }
