@@ -241,13 +241,19 @@ int main(int argc, const char *argv[]) {
     threading::thread_pool tp(parse_threads);
     std::vector<fs::file_info> result;
     std::mutex result_mutex;
-    std::function<void (std::function<bool ()>, unsigned int, fs::file_info &, std::vector<fs::file_info>)> file_parse_callback = [&] (std::function<bool ()> yield, unsigned int depth, fs::file_info &parent, std::vector<fs::file_info> files) {
+    std::function<void (std::function<bool (std::shared_ptr<threading::task_t>)>, unsigned int, fs::file_info &, std::vector<fs::file_info>)> file_parse_callback = [&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield, unsigned int depth, fs::file_info &parent, std::vector<fs::file_info> files) {
+        std::vector<std::shared_ptr<threading::task_t>> tasks;
         for (auto &file: files) {
             if (file.type == fs::file_type::directory) {
-                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); }});
-                while(yield());
+                auto task = tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
+                tasks.push_back(task);
             }
+        }
 
+        for (const auto &task: tasks)
+            while(yield(task));
+
+        for (auto &file: files) {
             parent.length += file.length;
 
             if (depth == 0)
@@ -256,16 +262,23 @@ int main(int argc, const char *argv[]) {
                 result.push_back(file);
             }
         }
-
     };
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [&] {
-        for (auto const &target: targets) {
-            fs::file_info parent = fs::read_file(target);
-            if (fs::is_type<fs::file_type::directory>(target)) {
-                tp.add(threading::thread_pool_task_t {[&] (std::function<bool ()> yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(target, enter_directory, false)); }});
-                tp.wait();
-            }
 
+    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [&] {
+        std::vector<fs::file_info> parents;
+        for (auto const &target: targets) {
+            parents.push_back(fs::read_file(target));
+        }
+
+        for (auto &parent: parents) {
+            if (parent.type == fs::file_type::directory) {
+                tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(parent.path + '/' + parent.name, enter_directory, false)); });
+            }
+        }
+
+        tp.wait();
+
+        for (auto &parent: parents) {
             if (!enter_directory)
             {
                 std::lock_guard<std::mutex> result_lock(result_mutex);
