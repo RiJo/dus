@@ -8,23 +8,46 @@
 #include <stdexcept>
 
 namespace threading {
-    struct thread_pool_task_t {
-        std::function<void (std::function<bool ()>)> callback;
+    enum class task_status {
+        pending,
+        in_progress,
+        done,
+        failed
+    };
+
+    struct task_t {
+        task_status status;
+        std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> callback;
     };
 
     class thread_pool {
         volatile bool destruct {false};
-        volatile unsigned int active_threads {0};
+        volatile unsigned int active_threads {0}; // TODO: switch to unordered_set<int>?
         std::vector<std::thread> threads {};
-        std::queue<thread_pool_task_t> task_queue {};
+        std::queue<std::shared_ptr<task_t>> task_queue {};
         std::condition_variable task_notifier {};
         std::mutex mutex {};
 
-        bool thread_yield(const unsigned int thread_index) {
+        bool has_completed(const std::shared_ptr<task_t> wait_for_task) {
+            if (wait_for_task == nullptr)
+                return true;
+
+            {
+                std::lock_guard<std::mutex> global_lock(mutex);
+                return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed);
+            }
+        }
+
+        bool thread_yield(const unsigned int thread_index, const std::shared_ptr<task_t> wait_for_task = nullptr) {
+            if (wait_for_task != nullptr && has_completed(wait_for_task))
+                return false;
+
             std::unique_lock<std::mutex> thread_lock(mutex, std::defer_lock);
             thread_lock.lock();
             if (task_queue.size() == 0) {
                 thread_lock.unlock();
+                if (wait_for_task != nullptr)
+                    return !has_completed(wait_for_task);
                 return false;
             }
 
@@ -34,16 +57,18 @@ namespace threading {
             thread_lock.unlock();
 
             // Execute task
-            execute_task(thread_index, task);
+            execute_task(thread_index, *task);
             return true;
         }
 
-        void execute_task(const unsigned int thread_index, const thread_pool_task_t &task) {
+        void execute_task(const unsigned int thread_index, task_t &task) {
             try {
-                task.callback([&] () { return thread_yield(thread_index); });
+                task.status = task_status::in_progress;
+                task.callback([&] (const std::shared_ptr<task_t> wait_for_task = nullptr) { return thread_yield(thread_index, wait_for_task); });
+                task.status = task_status::done;
             }
             catch (...) {
-                // TODO: notify?
+                task.status = task_status::failed;
             }
         }
 
@@ -70,7 +95,7 @@ namespace threading {
                 thread_lock.unlock();
 
                 // Execute task
-                execute_task(thread_index, task);
+                execute_task(thread_index, *task);
 
                 thread_lock.lock();
                 active_threads--;
@@ -99,34 +124,47 @@ namespace threading {
                 threads.clear();
             }
 
-            void add(const thread_pool_task_t &task) {
+            std::shared_ptr<task_t> add(const std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> &task) {
+                std::shared_ptr<task_t> temp = std::make_shared<task_t>();
+                temp->status = task_status::pending;
+                temp->callback = task;
                 {
                     std::lock_guard<std::mutex> global_lock(mutex);
-                    task_queue.push(task);
+                    task_queue.push(temp);
                 }
                 task_notifier.notify_one();
+                return temp;
             }
-
-            void add(std::initializer_list<thread_pool_task_t> args) {
+#if FALSE
+            // TODO: re-implement
+            std::vector<std::shared_ptr<task_t>> add(std::initializer_list<std::function<void (std::function<bool ()>)>> args) {
                 if (args.size() == 0)
-                    return;
+                    return 0;
                 if (args.size() == 1)
                     return add(*args.begin());
 
+                std::vector<std::shared_ptr<task_t>> result;
                 {
+                    // TODO: don't lock for all these instructions!
                     std::lock_guard<std::mutex> global_lock(mutex);
-                    for (auto task: args)
-                        task_queue.push(task);
+                    for (auto task: args) {
+                        std::shared_ptr<task_t> temp = std::make_shared<task_t>();
+                        temp->callback = task;
+                        result.push_back(temp);
+                        task_queue.push(temp);
+                    }
                 }
                 task_notifier.notify_all();
+                return result;
             }
 
+            // TODO: re-implement
             template<typename... T>
-            void add(const thread_pool_task_t &task, T... args) {
+            std::shared_ptr<task_t> add(const std::function<void (std::function<bool ()>)> &task, T... args) {
                 add(task);
-                add(args...);
+                return add(args...);
             }
-
+#endif
             bool idle() {
                 std::lock_guard<std::mutex> global_lock(mutex);
                 return (active_threads == 0 && task_queue.size() == 0);
