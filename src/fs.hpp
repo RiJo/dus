@@ -38,7 +38,7 @@ namespace fs {
         unsigned int mode;
         unsigned int uid;
         unsigned int gid;
-        unsigned int length;
+        unsigned long length;
         unsigned int access_time;
         unsigned int modify_time;
         unsigned int change_time;

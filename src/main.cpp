@@ -275,7 +275,7 @@ int main(int argc, const char *argv[]) {
     std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
 
     // Find highest value (used for percentage)
-    unsigned int total_length {0};
+    unsigned long total_length {0};
     for (const auto &file: files)
         total_length += file.length;
 
@@ -369,6 +369,10 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         double factor = (total_length > 0) ? (static_cast<double>(file.length) / static_cast<double>(total_length)) : 0.0;
+#ifdef DEBUG
+        if (factor < 0.0 || factor > 1.0)
+            throw std::runtime_error("Factor must be between 0.0-1.0. File name: \"" + file.path + "/" + file.name + "\". File length: " + std::to_string(file.length) + ". Total length: " + std::to_string(total_length) + ". Calculated factor: " + std::to_string(factor) + ".");
+#endif
         double percent = factor * 100.0;
 
         // Progress bar
