@@ -30,7 +30,7 @@ namespace fs {
         undefined
     };
 
-    struct file_info {
+    struct file_info_t {
         fs::file_error error;
         fs::file_type type;
         std::string path;
@@ -117,7 +117,7 @@ namespace fs {
         return current_working_directory() + '/' + path;
     }
 
-    bool is_authorized(const fs::file_info &file, const fs::permission_flag &evaluation) {
+    bool is_authorized(const fs::file_info_t &file, const fs::permission_flag &evaluation) {
         if (((file.mode & 0x07) & evaluation) == evaluation)
             return true;
 
@@ -134,8 +134,8 @@ namespace fs {
         return false;
     }
 
-    fs::file_info read_file(const std::string &path) {
-        fs::file_info fi;
+    fs::file_info_t read_file(const std::string &path) {
+        fs::file_info_t fi;
         fi.path = fs::dirname(path);
         fi.name = fs::basename(path);
 
@@ -205,17 +205,17 @@ namespace fs {
     }
 
     bool exists(const std::string &path) {
-        fs::file_info fi = read_file(path);
+        fs::file_info_t fi = read_file(path);
         return (fi.error != fs::file_error::file_not_found && fi.error != fs::file_error::invalid_path);
     }
 
     template<fs::file_type T> bool is_type(const std::string &path) {
-        fs::file_info fi = read_file(path);
+        fs::file_info_t fi = read_file(path);
         return (fi.error == fs::file_error::none && fi.type == T);
     }
 
-    std::vector<fs::file_info> read_directory(const std::string &path, bool enter_directory, bool calculate_directory_length) {
-        std::vector<fs::file_info> contents;
+    std::vector<fs::file_info_t> read_directory(const std::string &path, bool enter_directory, bool calculate_directory_length) {
+        std::vector<fs::file_info_t> contents;
 
         DIR *dp {nullptr};
         if((dp  = opendir(path.c_str())) == nullptr) {
@@ -225,7 +225,7 @@ namespace fs {
                 return contents; // Probably no permissions to read directory contents
         }
 
-        fs::file_info fi_root = read_file(path);
+        fs::file_info_t fi_root = read_file(path);
         if (fi_root.type != fs::file_type::directory)
             throw new std::runtime_error("Path is not a directory: " + path);
 
@@ -247,7 +247,7 @@ namespace fs {
             if (filename == "." || filename == "..")
                 continue; // Skip virtual paths
 
-            fs::file_info fi_child = read_file(path + '/' + filename);
+            fs::file_info_t fi_child = read_file(path + '/' + filename);
 
             if (calculate_directory_length && fi_child.type == fs::file_type::directory) {
                 for (const auto &fi_grandchild: read_directory(path + '/' + filename, enter_directory, true)) {
