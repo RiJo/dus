@@ -231,8 +231,8 @@ int main(int argc, const char *argv[]) {
 
     // Read file/directory contents asynchronously (and render loading progress indicator)
     enter_directory &= targets.size() == 1; // Only enter directory if it's the only target
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [targets, enter_directory] {
-        std::vector<fs::file_info> result;
+    std::future<std::vector<fs::file_info_t>> future = std::async(std::launch::async, [targets, enter_directory] {
+        std::vector<fs::file_info_t> result;
         for (auto const &target: targets) {
             if (fs::is_type<fs::file_type::directory>(target))
                 for (auto const &file:fs::read_directory(target, enter_directory, true))
@@ -254,16 +254,16 @@ int main(int argc, const char *argv[]) {
     else {
         future.wait();
     }
-    std::vector<fs::file_info> files { future.get() };
+    std::vector<fs::file_info_t> files { future.get() };
 
     // Sort contents
     // TODO: use keys in usage printout as available values of '-s'
-    std::map<std::string, std::function<bool (const fs::file_info &, const fs::file_info &)>> comparators;
-    comparators["size"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
-    comparators["atime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.access_time < second.access_time : first.access_time > second.access_time; };
-    comparators["mtime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.modify_time < second.modify_time : first.modify_time > second.modify_time; };
-    comparators["ctime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.change_time < second.change_time : first.change_time > second.change_time; };
-    comparators["name"] = [order_inverted, natural_order] (const fs::file_info &first, const fs::file_info &second) {
+    std::map<std::string, std::function<bool (const fs::file_info_t &, const fs::file_info_t &)>> comparators;
+    comparators["size"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
+    comparators["atime"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.access_time < second.access_time : first.access_time > second.access_time; };
+    comparators["mtime"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.modify_time < second.modify_time : first.modify_time > second.modify_time; };
+    comparators["ctime"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.change_time < second.change_time : first.change_time > second.change_time; };
+    comparators["name"] = [order_inverted, natural_order] (const fs::file_info_t &first, const fs::file_info_t &second) {
         if (natural_order)
             return order_inverted ? cmp_natural_order(first.name, second.name) > 0 : cmp_natural_order(first.name, second.name) < 0;
         return order_inverted ? first.name > second.name : first.name < second.name;
@@ -272,7 +272,7 @@ int main(int argc, const char *argv[]) {
         std::cerr << console::color::red << PROGRAM_NAME << ": Undefined sort type: \"" << order_by << "\"" << console::color::reset << std::endl; // TODO: add valid ones to message
         return 2;
     }
-    std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
+    std::sort(files.begin(), files.end(), [&] (const fs::file_info_t &a, const fs::file_info_t &b) { return comparators[order_by](a, b); });
 
     // Find highest value (used for percentage)
     unsigned long total_length {0};
