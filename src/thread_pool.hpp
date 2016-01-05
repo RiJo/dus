@@ -33,7 +33,7 @@ namespace threading {
                 return true;
 
             {
-                std::lock_guard<std::mutex> global_lock(mutex);
+                //std::lock_guard<std::mutex> global_lock(mutex);
                 return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed);
             }
         }
