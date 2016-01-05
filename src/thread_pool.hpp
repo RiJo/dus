@@ -46,8 +46,10 @@ namespace threading {
             thread_lock.lock();
             if (task_queue.size() == 0) {
                 thread_lock.unlock();
-                if (wait_for_task != nullptr)
-                    return !has_completed(wait_for_task);
+                if (wait_for_task != nullptr && !has_completed(wait_for_task)) {
+                    std::this_thread::yield();
+                    return true;
+                }
                 return false;
             }
 
@@ -58,6 +60,8 @@ namespace threading {
 
             // Execute task
             execute_task(thread_index, *task);
+
+            std::this_thread::yield();
             return true;
         }
 
