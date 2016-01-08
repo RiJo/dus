@@ -14,7 +14,7 @@
 #include <future>
 #include <math.h>
 
-void print_usage(const std::string &application) {
+void print_usage() {
     std::cout << "usage: " << PROGRAM_NAME << " [-] [-0] [-c <count>] [--color] [-d] [-h] [i] [-n] [-s <size|name|atime|mtime|ctime>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
     std::cout << std::endl;
     std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
@@ -95,7 +95,7 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
         return -1;
 }
 
-void print_version(const std::string &application) {
+void print_version() {
     std::cout << PROGRAM_NAME << " v" PROGRAM_VERSION ", built " __DATE__ " " __TIME__ "." << std::endl;
 }
 
@@ -158,11 +158,11 @@ int main(int argc, const char *argv[]) {
         }
 
         if (arg.key == "--help") {
-            print_usage(fs::basename(std::string(argv[0])));
+            print_usage();
             return 0;
         }
         else if (arg.key == "--version" || arg.key == "-v") {
-            print_version(fs::basename(std::string(argv[0])));
+            print_version();
             return 0;
         }
         else if (arg.key == "-") {
