@@ -28,7 +28,7 @@ namespace threading {
         std::condition_variable task_notifier {};
         std::mutex mutex {};
 
-        bool has_completed(const std::shared_ptr<task_t> wait_for_task) {
+        inline bool has_completed(const std::shared_ptr<task_t> wait_for_task) {
             if (wait_for_task == nullptr)
                 return true;
 
@@ -169,7 +169,7 @@ namespace threading {
                 return add(args...);
             }
 #endif
-            bool idle() {
+            inline bool idle() {
                 std::lock_guard<std::mutex> global_lock(mutex);
                 return (active_threads == 0 && task_queue.size() == 0);
             }
