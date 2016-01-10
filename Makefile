@@ -1,4 +1,4 @@
-PROGRAM = dus
+PROGRAM ?= dus
 SOURCES = $(wildcard src/*.cpp)
 HEADERS = $(wildcard src/*.hpp)
 
@@ -6,13 +6,13 @@ CXX      ?= g++
 CXXFLAGS += -std=c++14 -Wall -Werror -Wextra -Wpedantic -Wshadow
 LDLIBS   += -lpthread
 
-INSTALL     = install
+INSTALL     ?= install
 INSTALL_BIN = $(INSTALL) -D -m 755
 
 PREFIX  = /usr/local
 BIN_DIR = $(PREFIX)/bin
 
-all: $(PROGRAM)
+all: Makefile $(PROGRAM)
 .PHONY: all
 
 $(PROGRAM): $(SOURCES) $(HEADERS)
