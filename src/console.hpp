@@ -39,20 +39,30 @@
 #define ANSI_COLOR_BACKGROUND_CYAN             "\x1b[1;46m"
 #define ANSI_COLOR_BACKGROUND_WHITE            "\x1b[1;47m"
 
-std::string exec(const std::string &command) {
+// TODO: move into console namespace
+struct exec_result_t {
+    int exit_code;
+    std::string stdout;
+};
+
+// TODO: move into console namespace
+exec_result_t exec(const std::string &command) {
     FILE* fp = popen(command.c_str(), "r");
     if (fp == nullptr)
         throw std::runtime_error("Failed to open pipe: \"" + command + "\"");
 
+    exec_result_t result { -1, "" };
+
     char buffer[32];
-    std::string result = "";
     while (!feof(fp)) {
         if (fgets(buffer, 32, fp) != nullptr)
-            result += buffer;
+            result.stdout += buffer;
     }
-    pclose(fp);
+
+    int temp = pclose(fp);
     fp = nullptr;
 
+    result.exit_code = WEXITSTATUS(temp);
     return result;
 }
 
@@ -309,6 +319,8 @@ namespace console {
                     throw std::out_of_range("Y coordinate (" + std::to_string(y) + ") is out of range (0-" + std::to_string(rows) + ").");
 
                 // TODO: implement
+                (void)c;
+                (void)sync;
                 throw std::runtime_error("write_char() is not yet implemented.");
 
                 //if (sync)
@@ -319,7 +331,7 @@ namespace console {
             int rows {0};
 
             tty() {
-                std::string stty = exec("stty -F /dev/tty size");
+                std::string stty = exec("stty -F /dev/tty size").stdout;
                 if (stty.length() > 0) {
                     std::istringstream st(stty);
                     st >> rows;

@@ -15,7 +15,7 @@
 #include <future>
 #include <math.h>
 
-void print_usage(const std::string &application) {
+void print_usage() {
     std::cout << "usage: " << PROGRAM_NAME << " [-] [-0] [-c <count>] [--color] [-d] [-h] [i] [-n] [-s <size|name|atime|mtime|ctime>] [-t <milliseconds>] [<target file/directory>]" << std::endl;
     std::cout << std::endl;
     std::cout << "List the contents of the given file/directory as graphs based on file sizes. If no target is given the current working directory is used." << std::endl;
@@ -97,7 +97,7 @@ int cmp_natural_order(const std::string &str1, const std::string &str2) {
         return -1;
 }
 
-void print_version(const std::string &application) {
+void print_version() {
     std::cout << PROGRAM_NAME << " v" PROGRAM_VERSION ", built " __DATE__ " " __TIME__ "." << std::endl;
 }
 
@@ -161,11 +161,11 @@ int main(int argc, const char *argv[]) {
         }
 
         if (arg.key == "--help") {
-            print_usage(fs::basename(std::string(argv[0])));
+            print_usage();
             return 0;
         }
         else if (arg.key == "--version" || arg.key == "-v") {
-            print_version(fs::basename(std::string(argv[0])));
+            print_version();
             return 0;
         }
         else if (arg.key == "-") {
@@ -239,13 +239,13 @@ int main(int argc, const char *argv[]) {
     // Read file/directory contents asynchronously (and render loading progress indicator)
     enter_directory &= targets.size() == 1; // Only enter directory if it's the only target
     threading::thread_pool tp(parse_threads);
-    std::vector<fs::file_info> result;
+    std::vector<fs::file_info_t> result;
     std::mutex result_mutex;
-    std::function<void (std::function<bool (std::shared_ptr<threading::task_t>)>, unsigned int, fs::file_info &, std::vector<fs::file_info>)> file_parse_callback = [&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield, unsigned int depth, fs::file_info &parent, std::vector<fs::file_info> files) {
+    std::function<void (std::function<bool (std::shared_ptr<threading::task_t>)>, unsigned int, fs::file_info_t &, std::vector<fs::file_info_t>)> file_parse_callback = [&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield, unsigned int depth, fs::file_info_t &parent, std::vector<fs::file_info_t> files) {
         std::vector<std::shared_ptr<threading::task_t>> tasks;
         for (auto &file: files) {
             if (file.type == fs::file_type::directory) {
-                auto task = tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
+                auto task = tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)>) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
                 tasks.push_back(std::move(task));
             }
         }
@@ -264,8 +264,8 @@ int main(int argc, const char *argv[]) {
         }
     };
 
-    std::future<std::vector<fs::file_info>> future = std::async(std::launch::async, [&] {
-        std::vector<fs::file_info> parents;
+    std::future<std::vector<fs::file_info_t>> future = std::async(std::launch::async, [&] {
+        std::vector<fs::file_info_t> parents;
         for (auto const &target: targets) {
             parents.push_back(fs::read_file(target));
         }
@@ -300,16 +300,16 @@ int main(int argc, const char *argv[]) {
     else {
         future.wait();
     }
-    std::vector<fs::file_info> files { future.get() };
+    std::vector<fs::file_info_t> files { future.get() };
 
     // Sort contents
     // TODO: use keys in usage printout as available values of '-s'
-    std::map<std::string, std::function<bool (const fs::file_info &, const fs::file_info &)>> comparators;
-    comparators["size"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
-    comparators["atime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.access_time < second.access_time : first.access_time > second.access_time; };
-    comparators["mtime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.modify_time < second.modify_time : first.modify_time > second.modify_time; };
-    comparators["ctime"] = [order_inverted] (const fs::file_info &first, const fs::file_info &second) { return order_inverted ? first.change_time < second.change_time : first.change_time > second.change_time; };
-    comparators["name"] = [order_inverted, natural_order] (const fs::file_info &first, const fs::file_info &second) {
+    std::map<std::string, std::function<bool (const fs::file_info_t &, const fs::file_info_t &)>> comparators;
+    comparators["size"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.length < second.length : first.length > second.length; };
+    comparators["atime"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.access_time < second.access_time : first.access_time > second.access_time; };
+    comparators["mtime"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.modify_time < second.modify_time : first.modify_time > second.modify_time; };
+    comparators["ctime"] = [order_inverted] (const fs::file_info_t &first, const fs::file_info_t &second) { return order_inverted ? first.change_time < second.change_time : first.change_time > second.change_time; };
+    comparators["name"] = [order_inverted, natural_order] (const fs::file_info_t &first, const fs::file_info_t &second) {
         if (natural_order)
             return order_inverted ? cmp_natural_order(first.name, second.name) > 0 : cmp_natural_order(first.name, second.name) < 0;
         return order_inverted ? first.name > second.name : first.name < second.name;
@@ -318,10 +318,10 @@ int main(int argc, const char *argv[]) {
         std::cerr << console::color::red << PROGRAM_NAME << ": Undefined sort type: \"" << order_by << "\"" << console::color::reset << std::endl; // TODO: add valid ones to message
         return 2;
     }
-    std::sort(files.begin(), files.end(), [&] (const fs::file_info &a, const fs::file_info &b) { return comparators[order_by](a, b); });
+    std::sort(files.begin(), files.end(), [&] (const fs::file_info_t &a, const fs::file_info_t &b) { return comparators[order_by](a, b); });
 
     // Find highest value (used for percentage)
-    unsigned int total_length {0};
+    unsigned long total_length {0};
     for (const auto &file: files)
         total_length += file.length;
 
@@ -415,6 +415,10 @@ int main(int argc, const char *argv[]) {
         row_data += " ";
 
         double factor = (total_length > 0) ? (static_cast<double>(file.length) / static_cast<double>(total_length)) : 0.0;
+#ifdef DEBUG
+        if (factor < 0.0 || factor > 1.0)
+            throw std::runtime_error("Factor must be between 0.0-1.0. File name: \"" + file.path + "/" + file.name + "\". File length: " + std::to_string(file.length) + ". Total length: " + std::to_string(total_length) + ". Calculated factor: " + std::to_string(factor) + ".");
+#endif
         double percent = factor * 100.0;
 
         // Progress bar
