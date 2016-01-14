@@ -9,15 +9,15 @@ url="https://github.com/RiJo/dus"
 license=('GPL3')
 groups=()
 depends=('glibc')
-source=("https://github.com/RiJo/$pkgname/archive/$pkgname-$pkgver.tar.gz")
-md5sums=('3e86c45574e23da86cd4e9703f6838d1')
+source=("https://github.com/RiJo/$pkgname/archive/v$pkgver.tar.gz")
+md5sums=('beca11db0a3f6ae79ac3510cb0c3ab64')
 
 build() {
-        cd "$srcdir/$pkgname-$pkgname-$pkgver"
+        cd "$srcdir/$pkgname-$pkgver"
         make
 }
 
 package() {
-        cd "$srcdir/$pkgname-$pkgname-$pkgver"
+        cd "$srcdir/$pkgname-$pkgver"
         make DESTDIR="$pkgdir/" install
 }
