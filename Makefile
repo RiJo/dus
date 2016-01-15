@@ -20,6 +20,7 @@ $(PROGRAM): $(SOURCES) $(HEADERS)
 
 debug: CXXFLAGS += -g -D=DEBUG
 debug: all
+.PHONY: debug
 
 clean:
 	$(RM) $(PROGRAM)
