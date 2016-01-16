@@ -3,8 +3,8 @@ SOURCES = $(wildcard src/*.cpp)
 HEADERS = $(wildcard src/*.hpp)
 
 CXX      ?= g++
-CXXFLAGS += -std=c++14 -Wall -Werror -Wextra -Wpedantic -Wshadow
-LDLIBS   += -lpthread
+CXXFLAGS += -std=c++14 -Wall -Werror -Wextra -Wpedantic -Wshadow -pthread
+LDLIBS   += 
 
 INSTALL     ?= install
 INSTALL_BIN = $(INSTALL) -D -m 755
