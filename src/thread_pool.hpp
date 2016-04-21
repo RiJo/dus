@@ -38,7 +38,7 @@ namespace threading {
             }
         }
 
-        bool thread_yield(const unsigned int thread_index, const std::shared_ptr<task_t> wait_for_task = nullptr) {
+        bool thread_yield(const std::shared_ptr<task_t> wait_for_task = nullptr) {
             if (wait_for_task != nullptr && has_completed(wait_for_task))
                 return false;
 
@@ -59,16 +59,16 @@ namespace threading {
             thread_lock.unlock();
 
             // Execute task
-            execute_task(thread_index, *task);
+            execute_task(*task);
 
             std::this_thread::yield();
             return true;
         }
 
-        void execute_task(const unsigned int thread_index, task_t &task) {
+        void execute_task(task_t &task) {
             try {
                 task.status = task_status::in_progress;
-                task.callback([&] (const std::shared_ptr<task_t> wait_for_task = nullptr) { return thread_yield(thread_index, wait_for_task); });
+                task.callback([&] (const std::shared_ptr<task_t> wait_for_task = nullptr) { return thread_yield(wait_for_task); });
                 task.status = task_status::done;
             }
             catch (...) {
@@ -76,7 +76,7 @@ namespace threading {
             }
         }
 
-        void thread_loop(const unsigned int thread_index) {
+        void thread_loop() {
             std::unique_lock<std::mutex> thread_lock(mutex, std::defer_lock);
 
             while (!destruct) {
@@ -99,7 +99,7 @@ namespace threading {
                 thread_lock.unlock();
 
                 // Execute task
-                execute_task(thread_index, *task);
+                execute_task(*task);
 
                 thread_lock.lock();
                 active_threads--;
@@ -113,7 +113,7 @@ namespace threading {
                     throw std::runtime_error("Thread count must be at least one: " + std::to_string(thread_count));
 
                 for (unsigned int i = 0; i < thread_count; i++)
-                    threads.emplace_back(&thread_pool::thread_loop, this, i);
+                    threads.emplace_back(&thread_pool::thread_loop, this);
             }
 
             ~thread_pool() {
