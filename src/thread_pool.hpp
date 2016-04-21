@@ -129,6 +129,14 @@ namespace threading {
             }
 
             std::shared_ptr<task_t> add(const std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> &task) {
+                // TODO: only perform this if add() is called by thread_pool's internal threads
+                if (active_threads == threads.size()){
+                    // No pending threads, execute immediately in current thread
+                    task_t temp {task_status::pending, task};
+                    execute_task(temp);
+                    return nullptr;
+                }
+
                 std::shared_ptr<task_t> temp = std::make_shared<task_t>();
                 temp->status = task_status::pending;
                 temp->callback = task;
