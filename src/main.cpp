@@ -246,7 +246,8 @@ int main(int argc, const char *argv[]) {
         for (auto &file: files) {
             if (file.type == fs::file_type::directory) {
                 auto task = tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)>) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
-                tasks.push_back(std::move(task));
+                if (task != nullptr)
+                    tasks.push_back(std::move(task));
             }
         }
 
