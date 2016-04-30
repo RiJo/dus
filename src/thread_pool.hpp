@@ -4,6 +4,7 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <atomic>
 #include <queue>
 #include <stdexcept>
 
@@ -21,8 +22,8 @@ namespace threading {
     };
 
     class thread_pool {
-        volatile bool destruct {false};
-        volatile unsigned int active_threads {0}; // TODO: switch to unordered_set<int>?
+        std::atomic_bool destruct {false};
+        std::atomic_uint active_threads {0}; // TODO: switch to unordered_set<int>?
         std::vector<std::thread> threads {};
         std::queue<std::shared_ptr<task_t>> task_queue {};
         std::condition_variable task_notifier {};
@@ -79,13 +80,13 @@ namespace threading {
         void thread_loop() {
             std::unique_lock<std::mutex> thread_lock(mutex, std::defer_lock);
 
-            while (!destruct) {
+            while (!destruct.load()) {
                 thread_lock.lock();
                 if (task_queue.size() == 0) {
                     // Wait for new items
                     task_notifier.wait(thread_lock);
 
-                    if (task_queue.size() == 0 || destruct) {
+                    if (task_queue.size() == 0 || destruct.load()) {
                         thread_lock.unlock();
                         continue;
                     }
@@ -101,9 +102,9 @@ namespace threading {
                 // Execute task
                 execute_task(*task);
 
-                thread_lock.lock();
+                //thread_lock.lock();
                 active_threads--;
-                thread_lock.unlock();
+                //thread_lock.unlock();
             }
         }
 
@@ -117,7 +118,7 @@ namespace threading {
             }
 
             ~thread_pool() {
-                destruct = true;
+                destruct.store(true);
                 {
                     std::lock_guard<std::mutex> global_lock(mutex);
                     task_notifier.notify_all();
@@ -134,7 +135,7 @@ namespace threading {
                 temp->callback = task;
 
                 // TODO: only perform this if add() is called by thread_pool's internal threads
-                if (active_threads == threads.size()) {
+                if (active_threads.load() == threads.size()) {
                     // No pending threads, execute immediately in current thread
                     execute_task(*temp);
                     return temp;
@@ -179,7 +180,7 @@ namespace threading {
 #endif
             inline bool idle() {
                 std::lock_guard<std::mutex> global_lock(mutex);
-                return (active_threads == 0 && task_queue.size() == 0);
+                return (active_threads.load() == 0 && task_queue.size() == 0);
             }
 
             void wait() {
