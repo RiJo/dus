@@ -65,7 +65,7 @@ namespace threading {
             return true;
         }
 
-        void execute_task(task_t &task) {
+        inline void execute_task(task_t &task) {
             try {
                 task.status = task_status::in_progress;
                 task.callback([&] (const std::shared_ptr<task_t> wait_for_task = nullptr) { return thread_yield(wait_for_task); });
@@ -129,17 +129,17 @@ namespace threading {
             }
 
             std::shared_ptr<task_t> add(const std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> &task) {
-                // TODO: only perform this if add() is called by thread_pool's internal threads
-                if (active_threads == threads.size()){
-                    // No pending threads, execute immediately in current thread
-                    task_t temp {task_status::pending, task};
-                    execute_task(temp);
-                    return nullptr;
-                }
-
                 std::shared_ptr<task_t> temp = std::make_shared<task_t>();
                 temp->status = task_status::pending;
                 temp->callback = task;
+
+                // TODO: only perform this if add() is called by thread_pool's internal threads
+                if (active_threads == threads.size()) {
+                    // No pending threads, execute immediately in current thread
+                    execute_task(*temp);
+                    return temp;
+                }
+
                 {
                     std::lock_guard<std::mutex> global_lock(mutex);
                     task_queue.push(temp);
