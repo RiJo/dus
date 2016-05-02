@@ -27,6 +27,7 @@ namespace threading {
         std::vector<std::thread> threads {};
         std::queue<std::shared_ptr<task_t>> task_queue {};
         std::condition_variable task_notifier {};
+        std::condition_variable wait_notifier {};
         std::mutex mutex {};
 
         inline bool has_completed(const std::shared_ptr<task_t> wait_for_task) {
@@ -104,6 +105,9 @@ namespace threading {
 
                 //thread_lock.lock();
                 active_threads--;
+                if (active_threads.load() == 0 && task_queue.size() == 0)
+                    wait_notifier.notify_all();
+
                 //thread_lock.unlock();
             }
         }
@@ -126,6 +130,9 @@ namespace threading {
 
                 for (auto &thread: threads)
                     thread.join();
+
+                wait_notifier.notify_all(); // TODO: required or indirect by other logic?
+
                 threads.clear();
             }
 
@@ -178,18 +185,19 @@ namespace threading {
                 return add(args...);
             }
 #endif
+
+#if FALSE
             inline bool idle() {
                 std::lock_guard<std::mutex> global_lock(mutex);
                 return (active_threads.load() == 0 && task_queue.size() == 0);
             }
+#endif
 
             void wait() {
-                // TODO: replace while-sleep w/ event signal on change
-                while(true) {
-                    if (idle())
-                        break;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                }
+                std::unique_lock<std::mutex> wait_lock(mutex);
+                if (active_threads.load() > 0 || task_queue.size() > 0)
+                    wait_notifier.wait(wait_lock);
+                wait_lock.unlock();
             }
     };
 }
