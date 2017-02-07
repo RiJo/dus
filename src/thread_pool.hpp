@@ -40,7 +40,7 @@ namespace threading {
         std::map<unsigned int, std::condition_variable> task_notifiers {};
         std::atomic_uint next_worker_index {0};
 
-
+        std::mutex wait_mutex {};
         std::condition_variable wait_notifier {};
 
         inline bool has_completed(const std::shared_ptr<task_t> &wait_for_task) {
@@ -136,6 +136,7 @@ namespace threading {
                         // wait for new items
                         thread_lock.lock();
                         if (task_queues[worker_index].size() == 0) {
+                            wait_notifier.notify_all(); // tell waiters to evaluate task queues
 #if DEBUG
                             std::cout << "[" << worker_index << "] wait..." << std::endl;
 #endif
@@ -222,7 +223,8 @@ namespace threading {
                 for (worker_t &t: threads)
                     t.worker.join();
 
-                //wait_notifier.notify_all(); // TODO: required or indirect by other logic?
+                // TODO: clear all queues to make blocked wait() evaluate properly
+                wait_notifier.notify_all();
 
                 threads.clear();
             }
@@ -296,28 +298,29 @@ namespace threading {
 #endif
 
             void wait() {
-                //~ std::unique_lock<std::mutex> wait_lock(mutex);
-                //~ if (active_threads.load() > 0 || task_queue.size() > 0)
-                    //~ wait_notifier.wait(wait_lock);
-                //~ wait_lock.unlock();
-                // TODO: fix using condition_variable
-                bool done;
-                do {
-                    done = true;
-                    for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++)
-                    {
-                        if (task_queues[worker_index].size() > 0) {
+                std::unique_lock<std::mutex> wait_lock(wait_mutex);
+                bool in_progress = true;
+                while (in_progress) {
+                    in_progress = false;
+                    for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++) {
+                        std::lock_guard<std::mutex> worker_lock(mutexes[worker_index]);
+                        if (task_queues[worker_index].size() == 0)
+                            continue;
+
 #if DEBUG
-                            std::cout << "wait() - task [" << worker_index << "] has " << task_queues[worker_index].size() << " tasks left" << std::endl;
+                        std::cout << "wait() - task [" << worker_index << "] has " << task_queues[worker_index].size() << " tasks left" << std::endl;
 #endif
-                            done = false;
-                            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                            break;
-                        }
+                        in_progress = true;
+                        break;
                     }
-                } while (!done);
+
+                    if (in_progress)
+                        wait_notifier.wait(wait_lock);
+                }
+
+                wait_lock.unlock();
 #if DEBUG
-                            std::cout << "wait() - done" << std::endl;
+                std::cout << "wait() - done" << std::endl;
 #endif
             }
     };
