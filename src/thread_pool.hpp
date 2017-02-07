@@ -29,6 +29,8 @@ namespace threading {
         std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> callback;
     };
 
+    // TODO: fix yield()
+    // TODO: fix wait()
     class thread_pool {
         std::atomic_bool destruct {false};
         const unsigned int thread_count;
@@ -106,18 +108,23 @@ namespace threading {
             std::unique_lock<std::mutex> thread_lock(mutexes[worker_index], std::defer_lock);
             //~ std::cout << "Creating [" << worker_index << "]" << std::endl;
             while (!destruct.load()) {
+                std::shared_ptr<task_t> task = nullptr;
+
                 thread_lock.lock();
                 if (task_queues[worker_index].size() == 0) {
-                    bool task_stolen = false;
+                    thread_lock.unlock(); // release lock to prevent deadlocks while stealing
+
+                    // TODO: inefficient when most threads are asleep (cv.wait()) and one thread has many tasks
                     for (unsigned int i = 1; i < thread_count; i++) {
                         unsigned int other_worker_index = (worker_index + i) % thread_count;
-                        std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
-                        if (task_queues[other_worker_index].size() > 0) {
-                            // Steal item
-                            task_queues[worker_index].push(task_queues[other_worker_index].front());
-                            task_queues[other_worker_index].pop();
+                        {
+                            std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
+                            if (task_queues[other_worker_index].size() == 0)
+                                continue;
 
-                            task_stolen = true;
+                            // Steal item
+                            task = std::move(task_queues[other_worker_index].front());
+                            task_queues[other_worker_index].pop();
 #if DEBUG
                             std::cout << "[" << worker_index << "] stole task from [" << other_worker_index << "]" << std::endl;
 #endif
@@ -125,49 +132,48 @@ namespace threading {
                         }
                     }
 
-#if DEBUG
-                    std::cout << "[" << worker_index << "] task count: " << task_queues[worker_index].size() << std::endl;
-#endif
-
-                    if (!task_stolen) {
-                        // Wait for new items
-                        task_notifiers[worker_index].wait(thread_lock);
+                    if (task == nullptr) {
+                        // wait for new items
+                        thread_lock.lock();
                         if (task_queues[worker_index].size() == 0) {
-                            thread_lock.unlock();
-                            continue; // stolen by other thread
+#if DEBUG
+                            std::cout << "[" << worker_index << "] wait..." << std::endl;
+#endif
+                            task_notifiers[worker_index].wait(thread_lock);
+                            if (task_queues[worker_index].size() == 0) {
+                                thread_lock.unlock();
+                                continue; // stolen by other thread
+                            }
+#if DEBUG
+                            std::cout << "[" << worker_index << "] notified of new task" << std::endl;
+#endif
                         }
                     }
-
-                    //~ std::cout << "Unleash [" << worker_index << "]" << std::endl;
-                    if (destruct.load()) {
-                        thread_lock.unlock();
-                        break;
-                    }
-
-
                 }
 
-                // Pop next item
+                // note: thread_lock locked if (task == nullptr)
+
+                if (destruct.load()) {
+                    if (task == nullptr)
+                        thread_lock.unlock();
+                    break;
+                }
+
+                if (task == nullptr) {
+                    // pop item in current queue
+                    task = task_queues[worker_index].front();
 #if DEBUG
-                if (task_queues[worker_index].size() == 0)
-                    throw std::runtime_error("task queue is empty in thread_loop..."); // TODO: unlock mutex?
+                    if (task == nullptr) {
+                        thread_lock.unlock();
+                        throw std::runtime_error("popped a nullptr in thread_loop...");
+                    }
 #endif
-                auto task = task_queues[worker_index].front();
-#if DEBUG
-                if (task == nullptr)
-                    throw std::runtime_error("popped a nullptr in thread_loop..."); // TODO: unlock mutex?
-#endif
-                task_queues[worker_index].pop();
-                thread_lock.unlock();
+                    task_queues[worker_index].pop();
+                    thread_lock.unlock();
+                }
 
                 // Execute task
                 execute_task(worker_index, *task);
-
-                //thread_lock.lock();
-                //~ if (active_threads.load() == 0 && task_queue.size() == 0)
-                    //~ wait_notifier.notify_all();
-
-                //thread_lock.unlock();
             }
         }
 
@@ -245,7 +251,7 @@ namespace threading {
                     task_queues[next_index].push(temp);
                     task_notifiers[next_index].notify_one();
 #if DEBUG
-                    std::cout << "[" << next_index << "] new task" << std::endl;
+                    std::cout << "[" << next_index << "] new task added" << std::endl;
 #endif
                 }
 
@@ -305,7 +311,7 @@ namespace threading {
                             std::cout << "wait() - task [" << worker_index << "] has " << task_queues[worker_index].size() << " tasks left" << std::endl;
 #endif
                             done = false;
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                            std::this_thread::sleep_for(std::chrono::milliseconds(100));
                             break;
                         }
                     }
