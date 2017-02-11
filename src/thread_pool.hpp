@@ -26,7 +26,7 @@ namespace threading {
 
     struct task_t {
         task_status status;
-        std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> callback;
+        const std::function<void (const std::function<bool (const std::shared_ptr<task_t> &)> &)> callback;
     };
 
     class thread_pool {
@@ -52,7 +52,7 @@ namespace threading {
             }
         }
 
-        bool thread_yield(unsigned int worker_index, const std::shared_ptr<task_t> wait_for_task = nullptr) {
+        bool thread_yield(unsigned int worker_index, const std::shared_ptr<task_t> &wait_for_task = nullptr) {
             if (wait_for_task != nullptr && has_completed(wait_for_task))
                 return false;
 
@@ -72,9 +72,9 @@ namespace threading {
                                     continue;
 
                                 // Steal item
-                                std::shared_ptr<task_t> task = std::move(task_queues[other_worker_index].front());
+                                task = std::move(task_queues[other_worker_index].front());
                                 task_queues[other_worker_index].pop();
-#if DEBUG
+#ifdef DEBUG
                                 std::cout << "[" << worker_index << "] stole task from [" << other_worker_index << "] - yield" << std::endl;
 #endif
                             }
@@ -89,18 +89,17 @@ namespace threading {
                     }
 
                     std::this_thread::yield();
-                    return true;
                 }
-                return false;
+                return true;
             }
 
             // Pop next item
-#if DEBUG
+#ifdef DEBUG
             if (task_queues[worker_index].size() == 0)
                 throw std::runtime_error("task queue is empty in thread_yield..."); // TODO: unlock mutex?
 #endif
             auto task = task_queues[worker_index].front();
-#if DEBUG
+#ifdef DEBUG
             if (task == nullptr)
                 throw std::runtime_error("popped a nullptr in thread_yield..."); // TODO: unlock mutex?
 #endif
@@ -109,6 +108,8 @@ namespace threading {
             thread_lock.unlock();
 
             // Execute task
+            if (task == nullptr)
+                throw std::runtime_error("WOOT?");
             execute_task(worker_index, *task);
 
             std::this_thread::yield();
@@ -118,9 +119,9 @@ namespace threading {
         inline void execute_task(unsigned int worker_index, task_t &task) {
             try {
                 task.status = task_status::in_progress;
-                task.callback([&] (const std::shared_ptr<task_t> wait_for_task = nullptr) { return thread_yield(worker_index, wait_for_task); });
+                task.callback([this, worker_index] (const std::shared_ptr<task_t> &wait_for_task = nullptr) { return thread_yield(worker_index, wait_for_task); });
                 task.status = task_status::done;
-#if DEBUG
+#ifdef DEBUG
                 std::cout << "[" << worker_index << "] completed task" << std::endl;
 #endif
             }
@@ -152,7 +153,7 @@ namespace threading {
                             // Steal item
                             task = std::move(task_queues[other_worker_index].front());
                             task_queues[other_worker_index].pop();
-#if DEBUG
+#ifdef DEBUG
                             std::cout << "[" << worker_index << "] stole task from [" << other_worker_index << "]" << std::endl;
 #endif
                             break;
@@ -168,7 +169,7 @@ namespace threading {
                                 workers_idle[worker_index] = true;
                                 wait_notifier.notify_all(); // tell waiters to evaluate task queues
                             }
-#if DEBUG
+#ifdef DEBUG
                             std::cout << "[" << worker_index << "] wait..." << std::endl;
 #endif
                             task_notifiers[worker_index].wait(thread_lock);
@@ -177,7 +178,7 @@ namespace threading {
                                 thread_lock.unlock();
                                 continue; // stolen by other thread
                             }
-#if DEBUG
+#ifdef DEBUG
                             std::cout << "[" << worker_index << "] notified of new task" << std::endl;
 #endif
                         }
@@ -195,7 +196,7 @@ namespace threading {
                 if (task == nullptr) {
                     // pop item in current queue
                     task = task_queues[worker_index].front();
-#if DEBUG
+#ifdef DEBUG
                     if (task == nullptr) {
                         thread_lock.unlock();
                         throw std::runtime_error("popped a nullptr in thread_loop...");
@@ -206,6 +207,8 @@ namespace threading {
                 }
 
                 // Execute task
+                if (task == nullptr)
+                    throw std::runtime_error("WOOT?");
                 execute_task(worker_index, *task);
             }
         }
@@ -223,8 +226,8 @@ namespace threading {
         public:
             thread_pool() = delete;
 
-            thread_pool(const unsigned int thread_count) : thread_count(thread_count) {
-#if DEBUG
+            thread_pool(const unsigned int thread_count_) : thread_count(thread_count_) {
+#ifdef DEBUG
                 std::cout << "c'tor" << std::endl;
 #endif
                 if (thread_count < 1)
@@ -244,7 +247,7 @@ namespace threading {
             ~thread_pool() {
                 destruct.store(true);
                 {
-#if DEBUG
+#ifdef DEBUG
                     std::cout << "d'tor" << std::endl;
 #endif
                     for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++)
@@ -262,10 +265,10 @@ namespace threading {
                 threads.clear();
             }
 
-            std::shared_ptr<task_t> add(const std::function<void (std::function<bool (std::shared_ptr<task_t>)>)> &task) {
-                std::shared_ptr<task_t> temp = std::make_shared<task_t>();
-                temp->status = task_status::pending;
-                temp->callback = std::move(task);
+            std::shared_ptr<task_t> add(const std::function<void (const std::function<bool (const std::shared_ptr<task_t> &)> &)> task) {
+                std::shared_ptr<task_t> temp = std::make_shared<task_t>(task_t{task_status::pending, std::move(task)});
+                //~ temp->status = task_status::pending;
+                //~ temp->callback = task;
 
                 // TODO: only perform this if add() is called by thread_pool's internal threads
                 //~ if (active_threads.load() == threads.size()) {
@@ -274,7 +277,7 @@ namespace threading {
                     //~ return temp;
                 //~ }
 
-                // TODO: implement scheduler logic
+                // TODO: begin with locating empty task queue, else perform logic below
                 unsigned int next_index = next_worker_index.fetch_add(1);
                 if (next_index == thread_count) {
                     next_worker_index.store(1); // TODO: not atomic due to previous fetch_add(): if add() is called in parallel
@@ -285,7 +288,7 @@ namespace threading {
                     std::lock_guard<std::mutex> global_lock(mutexes[next_index]);
                     task_queues[next_index].push(temp);
                     task_notifiers[next_index].notify_one();
-#if DEBUG
+#ifdef DEBUG
                     std::cout << "[" << next_index << "] new task added" << std::endl;
 #endif
                 }
@@ -336,11 +339,14 @@ namespace threading {
                 while (in_progress) {
                     in_progress = false;
                     for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++) {
-                        if (workers_idle[worker_index])
-                            continue;
+                        if (workers_idle[worker_index]) {
+                            std::lock_guard<std::mutex> worker_lock(mutexes[worker_index]);
+                            if (task_queues[worker_index].size() == 0)
+                                continue;
+                        }
 
                         // TODO: we need to know active threads as well here..
-#if DEBUG
+#ifdef DEBUG
                         std::cout << "wait() - task [" << worker_index << "] isn't idle" << std::endl;
 #endif
                         in_progress = true;
@@ -349,14 +355,14 @@ namespace threading {
 
                     if (in_progress) {
                         wait_notifier.wait(wait_lock);
-#if DEBUG
+#ifdef DEBUG
                         std::cout << "wait() - re-evaluate" << std::endl;
 #endif
                     }
                 }
 
                 wait_lock.unlock();
-#if DEBUG
+#ifdef DEBUG
                 std::cout << "wait() - done" << std::endl;
 #endif
             }

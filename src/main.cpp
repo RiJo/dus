@@ -236,21 +236,26 @@ int main(int argc, const char *argv[]) {
         targets.insert(fs::current_working_directory());
     }
 
+
+
     // Read file/directory contents asynchronously (and render loading progress indicator)
     enter_directory &= targets.size() == 1; // Only enter directory if it's the only target
     threading::thread_pool tp(parse_threads);
-    std::vector<fs::file_info_t> result;
-    std::mutex result_mutex;
-    std::function<void (std::function<bool (std::shared_ptr<threading::task_t>)>, unsigned int, fs::file_info_t &, std::vector<fs::file_info_t>)> file_parse_callback = [&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield, unsigned int depth, fs::file_info_t &parent, std::vector<fs::file_info_t> files) {
-        std::vector<std::shared_ptr<threading::task_t>> tasks;
+    std::vector<fs::file_info_t> result {};
+    std::mutex result_mutex {};
+
+    // Callback declaration
+    std::function<void (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &, unsigned int, fs::file_info_t &, std::vector<fs::file_info_t>)> file_parse_callback = [&] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &yield, unsigned int depth, fs::file_info_t &parent, std::vector<fs::file_info_t> files) {
+        std::vector<std::shared_ptr<threading::task_t>> tasks {};
         for (auto &file: files) {
             if (file.type == fs::file_type::directory) {
-                auto task = tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)>) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
+                auto task = tp.add([&] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
                 if (task != nullptr)
                     tasks.push_back(std::move(task));
             }
         }
 
+        // TODO: overload thread_pool.yield() to take list of tasks
         for (const auto &task: tasks)
             while(yield(task));
 
@@ -266,14 +271,14 @@ int main(int argc, const char *argv[]) {
     };
 
     std::future<std::vector<fs::file_info_t>> future = std::async(std::launch::async, [&] {
-        std::vector<fs::file_info_t> parents;
+        std::vector<fs::file_info_t> parents {};
         for (auto const &target: targets) {
             parents.push_back(fs::read_file(target));
         }
 
         for (auto &parent: parents) {
             if (parent.type == fs::file_type::directory) {
-                tp.add([&] (std::function<bool (std::shared_ptr<threading::task_t>)> yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(parent.path + '/' + parent.name, enter_directory, false)); });
+                tp.add([&] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(parent.path + '/' + parent.name, enter_directory, false)); });
             }
         }
 
