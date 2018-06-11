@@ -20,7 +20,7 @@ namespace threading {
     };
 
     struct worker_t {
-        unsigned int index;
+        const unsigned int index;
         std::thread worker;
     };
 
@@ -46,77 +46,55 @@ namespace threading {
             if (wait_for_task == nullptr)
                 return true;
 
-            {
-                //std::lock_guard<std::mutex> global_lock(mutex);
-                return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed);
-            }
+            return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed);
         }
 
-        bool thread_yield(unsigned int worker_index, const std::shared_ptr<task_t> &wait_for_task = nullptr) {
+        std::shared_ptr<task_t> steal_task(const unsigned int worker_index) {
+            // TODO: inefficient when most threads are asleep (cv.wait()) and one thread has many tasks
+            for (unsigned int i = 1; i < thread_count; i++) {
+                const unsigned int other_worker_index = (worker_index + i) % thread_count;
+                {
+                    std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
+                    if (task_queues[other_worker_index].size() == 0)
+                        continue;
+#ifdef DEBUG
+                    std::cout << "[" << worker_index << "] stealing task from [" << other_worker_index << "]" << std::endl;
+#endif
+                    // Steal item
+                    std::shared_ptr<task_t> task = std::move(task_queues[other_worker_index].front());
+                    task_queues[other_worker_index].pop();
+                    return task;
+                }
+            }
+            return nullptr;
+        }
+
+        bool thread_yield(const unsigned int worker_index, const std::shared_ptr<task_t> &wait_for_task = nullptr) {
             if (wait_for_task != nullptr && has_completed(wait_for_task))
                 return false;
 
-            // TODO: look in other queues if current one is empty
             std::unique_lock<std::mutex> thread_lock(mutexes[worker_index]);
             if (task_queues[worker_index].size() == 0) {
                 thread_lock.unlock();
                 if (wait_for_task != nullptr && !has_completed(wait_for_task)) {
-                    // TODO: copied from thread_loop()
-                    for (unsigned int i = 1; i < thread_count; i++) {
-                        unsigned int other_worker_index = (worker_index + i) % thread_count;
-                        {
-                            std::shared_ptr<task_t> task = nullptr;
-                            {
-                                std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
-                                if (task_queues[other_worker_index].size() == 0)
-                                    continue;
-
-                                // Steal item
-                                task = std::move(task_queues[other_worker_index].front());
-                                task_queues[other_worker_index].pop();
-#ifdef DEBUG
-                                std::cout << "[" << worker_index << "] stole task from [" << other_worker_index << "] - yield" << std::endl;
-#endif
-                            }
-
-                            if (task == nullptr)
-                                throw std::runtime_error("WOOT?");
-                            execute_task(worker_index, *task);
-
-                            std::this_thread::yield();
-                            return true;
-                        }
-                    }
-
+                    std::shared_ptr<task_t> task = steal_task(worker_index);
+                    if (task != nullptr)
+                        execute_task(worker_index, *task);
                     std::this_thread::yield();
                 }
                 return true;
             }
 
-            // Pop next item
-#ifdef DEBUG
-            if (task_queues[worker_index].size() == 0)
-                throw std::runtime_error("task queue is empty in thread_yield..."); // TODO: unlock mutex?
-#endif
+            // Pop and execute next item
             auto task = task_queues[worker_index].front();
-#ifdef DEBUG
-            if (task == nullptr)
-                throw std::runtime_error("popped a nullptr in thread_yield..."); // TODO: unlock mutex?
-#endif
             task_queues[worker_index].pop();
-
             thread_lock.unlock();
-
-            // Execute task
-            if (task == nullptr)
-                throw std::runtime_error("WOOT?");
             execute_task(worker_index, *task);
-
             std::this_thread::yield();
             return true;
         }
 
-        inline void execute_task(unsigned int worker_index, task_t &task) {
+        inline void execute_task(const unsigned int worker_index, task_t &task) {
             try {
                 task.status = task_status::in_progress;
                 task.callback([this, worker_index] (const std::shared_ptr<task_t> &wait_for_task = nullptr) { return thread_yield(worker_index, wait_for_task); });
@@ -130,36 +108,17 @@ namespace threading {
             }
         }
 
-        void thread_loop(unsigned int worker_index) {
+        void thread_loop(const unsigned int worker_index) {
             std::unique_lock<std::mutex> thread_lock(mutexes[worker_index], std::defer_lock);
-            //~ std::cout << "Creating [" << worker_index << "]" << std::endl;
             while (!destruct.load()) {
                 std::shared_ptr<task_t> task = nullptr;
 
                 thread_lock.lock();
                 if (task_queues[worker_index].size() == 0) {
                     // TODO: wait for task for 10ms(?, relaxation) before stealing from other thread
-
                     thread_lock.unlock(); // release lock to prevent deadlocks while stealing
 
-                    // TODO: inefficient when most threads are asleep (cv.wait()) and one thread has many tasks
-                    for (unsigned int i = 1; i < thread_count; i++) {
-                        unsigned int other_worker_index = (worker_index + i) % thread_count;
-                        {
-                            std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
-                            if (task_queues[other_worker_index].size() == 0)
-                                continue;
-
-                            // Steal item
-                            task = std::move(task_queues[other_worker_index].front());
-                            task_queues[other_worker_index].pop();
-#ifdef DEBUG
-                            std::cout << "[" << worker_index << "] stole task from [" << other_worker_index << "]" << std::endl;
-#endif
-                            break;
-                        }
-                    }
-
+                    task = steal_task(worker_index);
                     if (task == nullptr) {
                         // wait for new items
                         thread_lock.lock();
@@ -196,24 +155,16 @@ namespace threading {
                 if (task == nullptr) {
                     // pop item in current queue
                     task = task_queues[worker_index].front();
-#ifdef DEBUG
-                    if (task == nullptr) {
-                        thread_lock.unlock();
-                        throw std::runtime_error("popped a nullptr in thread_loop...");
-                    }
-#endif
                     task_queues[worker_index].pop();
                     thread_lock.unlock();
                 }
 
                 // Execute task
-                if (task == nullptr)
-                    throw std::runtime_error("WOOT?");
                 execute_task(worker_index, *task);
             }
         }
 
-        void safe_thread_loop(unsigned int worker_index) {
+        void safe_thread_loop(const unsigned int worker_index) {
             try {
                 thread_loop(worker_index);
             }
