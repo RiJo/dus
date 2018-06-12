@@ -6,6 +6,7 @@
 #include <mutex>
 #include <atomic>
 #include <map>
+#include <set>
 #include <queue>
 #include <stdexcept>
 
@@ -21,7 +22,7 @@ namespace threading {
 
     struct worker_t {
         const unsigned int index;
-        std::thread worker;
+        std::thread thread;
     };
 
     struct task_t {
@@ -32,17 +33,17 @@ namespace threading {
     class thread_pool {
         std::atomic_bool destruct {false};
         const unsigned int thread_count;
-        std::vector<worker_t> threads {};
+        std::vector<worker_t> workers {};
         std::map<unsigned int, std::queue<std::shared_ptr<task_t>>> task_queues {};
-        std::map<unsigned int, bool> workers_idle {};
+        std::set<unsigned int> workers_idle {};
         std::map<unsigned int, std::mutex> mutexes {};
         std::map<unsigned int, std::condition_variable> task_notifiers {};
-        std::atomic_uint next_worker_index {0};
+        std::atomic_ulong next_worker_index {0};
 
         std::mutex wait_mutex {};
         std::condition_variable wait_notifier {};
 
-        inline bool has_completed(const std::shared_ptr<task_t> &wait_for_task) {
+        inline bool has_completed(const std::shared_ptr<task_t> &wait_for_task) const {
             if (wait_for_task == nullptr)
                 return true;
 
@@ -50,12 +51,14 @@ namespace threading {
         }
 
         std::shared_ptr<task_t> steal_task(const unsigned int worker_index) {
+            std::this_thread::yield(); // relaxation: let potential owner threads get task first
+
             // TODO: inefficient when most threads are asleep (cv.wait()) and one thread has many tasks
             for (unsigned int i = 1; i < thread_count; i++) {
                 const unsigned int other_worker_index = (worker_index + i) % thread_count;
                 {
                     std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
-                    if (task_queues[other_worker_index].size() == 0)
+                    if (task_queues[other_worker_index].size() <= (workers_idle.find(other_worker_index) != workers_idle.end() ? 1 : 0))
                         continue;
 #ifdef DEBUG
                     std::cout << "[" << worker_index << "] stealing task from [" << other_worker_index << "]" << std::endl;
@@ -85,7 +88,7 @@ namespace threading {
                 return true;
             }
 
-            // Pop and execute next item
+            // Pop and execute next task
             auto task = task_queues[worker_index].front();
             task_queues[worker_index].pop();
             thread_lock.unlock();
@@ -115,7 +118,6 @@ namespace threading {
 
                 thread_lock.lock();
                 if (task_queues[worker_index].size() == 0) {
-                    // TODO: wait for task for 10ms(?, relaxation) before stealing from other thread
                     thread_lock.unlock(); // release lock to prevent deadlocks while stealing
 
                     task = steal_task(worker_index);
@@ -125,20 +127,20 @@ namespace threading {
                         if (task_queues[worker_index].size() == 0) {
                             {
                                 std::lock_guard<std::mutex> wait_lock(wait_mutex);
-                                workers_idle[worker_index] = true;
+                                workers_idle.insert(worker_index);
                                 wait_notifier.notify_all(); // tell waiters to evaluate task queues
                             }
 #ifdef DEBUG
-                            std::cout << "[" << worker_index << "] wait..." << std::endl;
+                            std::cout << "[" << worker_index << "] idle" << std::endl;
 #endif
                             task_notifiers[worker_index].wait(thread_lock);
-                            workers_idle[worker_index] = false;
+                            workers_idle.erase(worker_index);
                             if (task_queues[worker_index].size() == 0) {
                                 thread_lock.unlock();
                                 continue; // stolen by other thread
                             }
 #ifdef DEBUG
-                            std::cout << "[" << worker_index << "] notified of new task" << std::endl;
+                            std::cout << "[" << worker_index << "] wake up" << std::endl;
 #endif
                         }
                     }
@@ -185,13 +187,13 @@ namespace threading {
                     throw std::runtime_error("Thread count must be at least one: " + std::to_string(thread_count));
 
                 for (unsigned int i = 0; i < thread_count; i++) {
-                    workers_idle[i];
+                    workers_idle.insert(i);
                     mutexes[i];
                     task_notifiers[i];
                     task_queues[i];
                 }
                 for (unsigned int i = 0; i < thread_count; i++) {
-                    threads.emplace_back(worker_t{i, std::thread{&thread_pool::safe_thread_loop, this, i}});
+                    workers.emplace_back(worker_t{i, std::thread{&thread_pool::safe_thread_loop, this, i}});
                 }
             }
 
@@ -203,23 +205,19 @@ namespace threading {
 #endif
                     for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++)
                         task_notifiers[worker_index].notify_all();
-                    //~ std::lock_guard<std::mutex> global_lock(mutex);
-                    //~ task_notifier.notify_all();
                 }
 
-                for (worker_t &t: threads)
-                    t.worker.join();
+                for (worker_t &worker: workers)
+                    worker.thread.join();
 
                 // TODO: clear all queues to make blocked wait() evaluate properly
                 wait_notifier.notify_all();
 
-                threads.clear();
+                workers.clear();
             }
 
             std::shared_ptr<task_t> add(const std::function<void (const std::function<bool (const std::shared_ptr<task_t> &)> &)> task) {
                 std::shared_ptr<task_t> temp = std::make_shared<task_t>(task_t{task_status::pending, std::move(task)});
-                //~ temp->status = task_status::pending;
-                //~ temp->callback = task;
 
                 // TODO: only perform this if add() is called by thread_pool's internal threads
                 //~ if (active_threads.load() == threads.size()) {
@@ -229,18 +227,13 @@ namespace threading {
                 //~ }
 
                 // TODO: begin with locating empty task queue, else perform logic below
-                unsigned int next_index = next_worker_index.fetch_add(1);
-                if (next_index == thread_count) {
-                    next_worker_index.store(1); // TODO: not atomic due to previous fetch_add(): if add() is called in parallel
-                    next_index = 0;
-                }
-
+                unsigned int next_index = next_worker_index.fetch_add(1) % thread_count;
                 {
                     std::lock_guard<std::mutex> global_lock(mutexes[next_index]);
                     task_queues[next_index].push(temp);
                     task_notifiers[next_index].notify_one();
 #ifdef DEBUG
-                    std::cout << "[" << next_index << "] new task added" << std::endl;
+                    std::cout << "[" << next_index << "] task added" << std::endl;
 #endif
                 }
 
@@ -277,44 +270,30 @@ namespace threading {
             }
 #endif
 
-#if FALSE
-            inline bool idle() {
-                std::lock_guard<std::mutex> global_lock(mutex);
-                return (active_threads.load() == 0 && task_queue.size() == 0);
+            bool all_tasks_idle() {
+                for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++) {
+                    if (workers_idle.find(worker_index) != workers_idle.end()) { // TODO: is this check thread safe?
+                        std::lock_guard<std::mutex> worker_lock(mutexes[worker_index]);
+                        if (task_queues[worker_index].size() == 0)
+                            continue;
+                    }
+                    return false;
+                }
+                return true;
             }
-#endif
 
             void wait() {
                 std::unique_lock<std::mutex> wait_lock(wait_mutex);
-                bool in_progress = true;
-                while (in_progress) {
-                    in_progress = false;
-                    for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++) {
-                        if (workers_idle[worker_index]) {
-                            std::lock_guard<std::mutex> worker_lock(mutexes[worker_index]);
-                            if (task_queues[worker_index].size() == 0)
-                                continue;
-                        }
-
-                        // TODO: we need to know active threads as well here..
-#ifdef DEBUG
-                        std::cout << "wait() - task [" << worker_index << "] isn't idle" << std::endl;
-#endif
-                        in_progress = true;
-                        break;
-                    }
-
-                    if (in_progress) {
+                bool in_progress;
+                do {
+                    in_progress = !all_tasks_idle();
+                    if (in_progress)
                         wait_notifier.wait(wait_lock);
-#ifdef DEBUG
-                        std::cout << "wait() - re-evaluate" << std::endl;
-#endif
-                    }
-                }
+                } while (in_progress);
 
                 wait_lock.unlock();
 #ifdef DEBUG
-                std::cout << "wait() - done" << std::endl;
+                std::cout << "wait complete" << std::endl;
 #endif
             }
     };
