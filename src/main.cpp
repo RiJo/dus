@@ -105,32 +105,6 @@ template<typename T> constexpr T ce_pow(const T value, const int power) {
     return (power > 1) ? value * ce_pow(value, power - 1) : (power == 1) ? value : (power == 0) ? 0 : throw std::runtime_error("Power cannot be negative: " + std::to_string(power));
 }
 
-#if 0
-unsigned int strlen_utf8(const std::string &str) {
-    unsigned int length = 0;
-    for (unsigned int i = 0; i < str.length(); i++) {
-        unsigned char c = str[i];
-        if (c > 127) {
-            if ((c & 0xE0) == 0xC0)
-                i += 1; // 2 byte sequence
-            else if ((c & 0xF0) == 0xE0)
-                i += 2; // 3 byte sequence
-            else if ((c & 0xF8) == 0xF0)
-                i += 3; // 4 byte sequence
-            else if ((c & 0xFC) == 0xF8)
-                i += 4; // 5 byte sequence
-            else if ((c & 0xFE) == 0xFC)
-                i += 5; // 6 byte sequence
-            else
-                return str.length(); // Not valid UTF-8, probably ISO-8859-1.
-        }
-
-        length++;
-    }
-    return length;
-}
-#endif
-
 int main(int argc, const char *argv[]) {
     // Parse arguments
     std::set<std::string> targets;
@@ -249,7 +223,7 @@ int main(int argc, const char *argv[]) {
         std::vector<std::shared_ptr<threading::task_t>> tasks {};
         for (auto &file: files) {
             if (file.type == fs::file_type::directory) {
-                auto task = tp.add([&] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &) { file_parse_callback(yield, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
+                auto task = tp.add([&file_parse_callback, depth, &file, enter_directory] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &y) { file_parse_callback(y, depth + 1, file, fs::read_directory(file.path + '/' + file.name, enter_directory, false)); });
                 if (task != nullptr)
                     tasks.push_back(std::move(task));
             }
@@ -278,7 +252,7 @@ int main(int argc, const char *argv[]) {
 
         for (auto &parent: parents) {
             if (parent.type == fs::file_type::directory) {
-                tp.add([&] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(parent.path + '/' + parent.name, enter_directory, false)); });
+                tp.add([&file_parse_callback, enter_directory, &parent] (const std::function<bool (const std::shared_ptr<threading::task_t> &)> &yield) { file_parse_callback(yield, enter_directory ? 0 : 1, parent, fs::read_directory(parent.path + '/' + parent.name, enter_directory, false)); });
             }
         }
 

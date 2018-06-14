@@ -17,7 +17,8 @@ namespace threading {
         pending,
         in_progress,
         done,
-        failed
+        failed,
+        aborted
     };
 
     struct worker_t {
@@ -32,6 +33,7 @@ namespace threading {
 
     class thread_pool {
         std::atomic_bool destruct {false};
+        std::atomic_bool abort {false};
         const unsigned int thread_count;
         std::vector<worker_t> workers {};
         std::map<unsigned int, std::queue<std::shared_ptr<task_t>>> task_queues {};
@@ -47,7 +49,7 @@ namespace threading {
             if (wait_for_task == nullptr)
                 return true;
 
-            return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed);
+            return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed || wait_for_task->status == task_status::aborted);
         }
 
         std::shared_ptr<task_t> steal_task(const unsigned int worker_index) {
@@ -63,7 +65,7 @@ namespace threading {
 #ifdef DEBUG
                     std::cout << "[" << worker_index << "] stealing task from [" << other_worker_index << "]" << std::endl;
 #endif
-                    // Steal item
+                    // steal task
                     std::shared_ptr<task_t> task = std::move(task_queues[other_worker_index].front());
                     task_queues[other_worker_index].pop();
                     return task;
@@ -88,7 +90,7 @@ namespace threading {
                 return true;
             }
 
-            // Pop and execute next task
+            // pop and execute next task
             auto task = task_queues[worker_index].front();
             task_queues[worker_index].pop();
             thread_lock.unlock();
@@ -98,6 +100,14 @@ namespace threading {
         }
 
         inline void execute_task(const unsigned int worker_index, task_t &task) {
+            if (abort.load()) {
+                task.status = task_status::aborted;
+#ifdef DEBUG
+                std::cout << "[" << worker_index << "] arborting task" << std::endl;
+#endif
+                return;
+            }
+
             try {
                 task.status = task_status::in_progress;
                 task.callback([this, worker_index] (const std::shared_ptr<task_t> &wait_for_task = nullptr) { return thread_yield(worker_index, wait_for_task); });
@@ -122,7 +132,7 @@ namespace threading {
 
                     task = steal_task(worker_index);
                     if (task == nullptr) {
-                        // wait for new items
+                        // wait for new task
                         thread_lock.lock();
                         if (task_queues[worker_index].size() == 0) {
                             {
@@ -155,13 +165,12 @@ namespace threading {
                 }
 
                 if (task == nullptr) {
-                    // pop item in current queue
+                    // pop next task
                     task = task_queues[worker_index].front();
                     task_queues[worker_index].pop();
                     thread_lock.unlock();
                 }
 
-                // Execute task
                 execute_task(worker_index, *task);
             }
         }
@@ -169,6 +178,9 @@ namespace threading {
         void safe_thread_loop(const unsigned int worker_index) {
             try {
                 thread_loop(worker_index);
+#ifdef DEBUG
+                std::cout << "[" << worker_index << "] terminated" << std::endl;
+#endif
             }
             catch (const std::exception &e) {
                 std::cerr << "[" << worker_index << "] uncaught exception: " << e.what() << std::endl;
@@ -187,7 +199,6 @@ namespace threading {
                     throw std::runtime_error("Thread count must be at least one: " + std::to_string(thread_count));
 
                 for (unsigned int i = 0; i < thread_count; i++) {
-                    workers_idle.insert(i);
                     mutexes[i];
                     task_notifiers[i];
                     task_queues[i];
@@ -198,22 +209,34 @@ namespace threading {
             }
 
             ~thread_pool() {
-                destruct.store(true);
-                {
 #ifdef DEBUG
-                    std::cout << "d'tor" << std::endl;
+                std::cout << "d'tor" << std::endl;
 #endif
-                    for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++)
-                        task_notifiers[worker_index].notify_all();
-                }
+                // abort all tasks and wait for threads to idle
+#ifdef DEBUG
+                std::cout << "abort all tasks..." << std::endl;
+#endif
+                abort.store(true);
+                wait();
 
+                // notify all threads to terminate
+#ifdef DEBUG
+                std::cout << "destruct threads..." << std::endl;
+#endif
+                destruct.store(true);
+                for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++)
+                    task_notifiers[worker_index].notify_all();
+
+#ifdef DEBUG
+                std::cout << "join threads..." << std::endl;
+#endif
                 for (worker_t &worker: workers)
                     worker.thread.join();
 
-                // TODO: clear all queues to make blocked wait() evaluate properly
-                wait_notifier.notify_all();
-
                 workers.clear();
+#ifdef DEBUG
+                std::cout << "d'tor completed" << std::endl;
+#endif
             }
 
             std::shared_ptr<task_t> add(const std::function<void (const std::function<bool (const std::shared_ptr<task_t> &)> &)> task) {

@@ -29,11 +29,11 @@ namespace unit {
             std::string to_string() const {
                 switch (result) {
                     case test_result::PASS:
-                        return console::color::green() + "PASS" + console::color::reset();
+                        return console::color::green() + "PASS" + console::color::reset() + (description.size() > 0 ? " -- " + description : "");
                     case test_result::FAIL:
-                        return console::color::red() + "FAIL" + console::color::reset() + " - " + message;
+                        return console::color::red() + "FAIL" + console::color::reset() + (description.size() > 0 ? " -- " + description : "") +  (message.size() > 0 ? " -- " + message : "");
                     case test_result::EXCEPTION:
-                        return console::color::red() + "EXCEPTION" + console::color::reset() + " - " + message;
+                        return console::color::red() + "EXCEPTION" + console::color::reset() + (description.size() > 0 ? " -- " + description : "") +  (message.size() > 0 ? " -- " + message : "");
                     default:
                         throw std::runtime_error("unhandled test report result");
                 }
