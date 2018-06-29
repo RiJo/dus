@@ -3,7 +3,7 @@ SOURCES = $(wildcard src/*.cpp)
 HEADERS = $(wildcard src/*.hpp)
 
 CXX      ?= g++
-CXXFLAGS += -std=c++14 -Wall -Werror -Wextra -Wpedantic -Wshadow -pthread
+CXXFLAGS += -std=c++17 -Wall -Werror -Wextra -Wpedantic -Wshadow -pthread
 LDLIBS   += 
 
 INSTALL     ?= install
@@ -33,3 +33,10 @@ install: $(PROGRAM)
 uninstall:
 	$(RM) $(DESTDIR)$(BIN_DIR)/$(PROGRAM)
 .PHONY: uninstall
+
+unit-test: test/thread_pool
+	@./test/thread_pool
+
+test/thread_pool: test/thread_pool.cpp test/unit.hpp $(HEADERS)
+	@$(CXX) $(CXXFLAGS) -Itest -Isrc $< -o $@
+
