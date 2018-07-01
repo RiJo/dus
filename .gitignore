@@ -24,6 +24,8 @@
 
 # Executables
 dus
+unit-test
 *.exe
 *.out
 *.app
+
