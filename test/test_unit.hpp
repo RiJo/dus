@@ -53,6 +53,7 @@ void test_assert_throws_fail() {
 void test_count_failures_zero() {
     unit::test_suite suite("test");
     suite.add_test([]() {});
+    suite();
     unit::assert_equals((size_t)0, suite.count_failure(), "assert_equals(0, suite.count_failure())");
 }
 
@@ -60,6 +61,7 @@ void test_count_failures_nonzero() {
     unit::test_suite suite("test");
     suite.add_test([]() {}, "pass");
     suite.add_test([]() { unit::assert("assert"); }, "fail");
+    suite();
     unit::assert_equals((size_t)1, suite.count_failure(), "assert_equals(1, suite.count_failure())");
 }
 

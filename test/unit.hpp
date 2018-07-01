@@ -43,14 +43,12 @@ namespace unit {
     class test_suite {
         private:
             std::string name;
+            std::vector<std::tuple<std::string, std::function<void ()>>> test_cases;
             std::vector<test_report> reports;
 
-        public:
-            test_suite(std::string n): name(n) {}
-
-            void add_test(const std::function<void ()> test, const std::string &description = "") {
+            void run_test(const std::string &description, const std::function<void ()> test_case) {
                 try {
-                    test();
+                    test_case();
                     reports.emplace_back(test_report{description, test_result::PASS, ""});
                 }
                 catch (const assertion_error& ex) {
@@ -64,20 +62,20 @@ namespace unit {
                 }
             }
 
-            void add_test2(const std::function<std::tuple<bool, std::string> ()> test, const std::string &description = "") {
-                try {
-                    auto [pass, message] = test();
-                    reports.emplace_back(test_report{description, pass ? test_result::PASS : test_result::FAIL, message});
-                }
-                catch (const assertion_error& ex) {
-                    reports.emplace_back(test_report{description, test_result::FAIL, ex});
-                }
-                catch (const std::exception& ex) {
-                    reports.emplace_back(test_report{description, test_result::EXCEPTION, ex.what()});
-                }
-                catch (...) {
-                    reports.emplace_back(test_report{description, test_result::EXCEPTION, "unhandled exception"});
-                }
+        public:
+            test_suite(std::string n): name(n) {}
+
+            void add_test(const std::function<void ()> test_case, const std::string &description = "") {
+                test_cases.push_back(std::make_pair(description, test_case));
+            }
+
+            void execute() {
+                for (const auto &test_case: test_cases)
+                    run_test(std::get<0>(test_case), std::get<1>(test_case));
+            }
+
+            void operator() (void) {
+                execute();
             }
 
             size_t count_failure() {
