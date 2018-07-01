@@ -15,9 +15,9 @@ namespace unit {
         EXCEPTION
     };
 
-    class assertion_error : virtual public std::runtime_error {
+    class assertion_error : public std::string {
         public:
-            assertion_error(const std::string &message) : std::runtime_error(message) {}
+            assertion_error(const std::string &message) : std::string(message) {}
     };
 
     class test_report {
@@ -54,7 +54,7 @@ namespace unit {
                     reports.emplace_back(test_report{description, test_result::PASS, ""});
                 }
                 catch (const assertion_error& ex) {
-                    reports.emplace_back(test_report{description, test_result::FAIL, ex.what()});
+                    reports.emplace_back(test_report{description, test_result::FAIL, ex});
                 }
                 catch (const std::exception& ex) {
                     reports.emplace_back(test_report{description, test_result::EXCEPTION, ex.what()});
@@ -70,7 +70,7 @@ namespace unit {
                     reports.emplace_back(test_report{description, pass ? test_result::PASS : test_result::FAIL, message});
                 }
                 catch (const assertion_error& ex) {
-                    reports.emplace_back(test_report{description, test_result::FAIL, ex.what()});
+                    reports.emplace_back(test_report{description, test_result::FAIL, ex});
                 }
                 catch (const std::exception& ex) {
                     reports.emplace_back(test_report{description, test_result::EXCEPTION, ex.what()});
