@@ -48,7 +48,7 @@ namespace unit {
         public:
             test_suite(std::string n): name(n) {}
 
-            void add_test(const std::function<void ()> test, const std::string &description) {
+            void add_test(const std::function<void ()> test, const std::string &description = "") {
                 try {
                     test();
                     reports.emplace_back(test_report{description, test_result::PASS, ""});
@@ -64,7 +64,7 @@ namespace unit {
                 }
             }
 
-            void add_test2(const std::function<std::tuple<bool, std::string> ()> test, const std::string &description) {
+            void add_test2(const std::function<std::tuple<bool, std::string> ()> test, const std::string &description = "") {
                 try {
                     auto [pass, message] = test();
                     reports.emplace_back(test_report{description, pass ? test_result::PASS : test_result::FAIL, message});
@@ -78,6 +78,14 @@ namespace unit {
                 catch (...) {
                     reports.emplace_back(test_report{description, test_result::EXCEPTION, "unhandled exception"});
                 }
+            }
+
+            size_t count_failure() {
+                size_t count{0};
+                for (const auto &report: reports)
+                    if (report.result != test_result::PASS)
+                        count++;
+                return count;
             }
 
             std::string to_string() const {
