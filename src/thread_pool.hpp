@@ -4,6 +4,7 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <map>
 #include <set>
@@ -37,6 +38,7 @@ namespace threading {
         const unsigned int thread_count;
         std::vector<worker_t> workers {};
         std::map<unsigned int, std::queue<std::shared_ptr<task_t>>> task_queues {};
+        std::shared_mutex workers_idle_mutex {};
         std::set<unsigned int> workers_idle {};
         std::map<unsigned int, std::mutex> mutexes {};
         std::map<unsigned int, std::condition_variable> task_notifiers {};
@@ -52,6 +54,11 @@ namespace threading {
             return (wait_for_task->status == task_status::done || wait_for_task->status == task_status::failed || wait_for_task->status == task_status::aborted);
         }
 
+        inline bool is_worker_idle(const unsigned int worker_index) {
+            std::shared_lock<std::shared_mutex> workers_idle_lock(workers_idle_mutex);
+            return workers_idle.find(worker_index) != workers_idle.end();
+        }
+
         std::shared_ptr<task_t> steal_task(const unsigned int worker_index) {
             std::this_thread::yield(); // relaxation: let potential owner threads get task first
 
@@ -60,13 +67,13 @@ namespace threading {
                 const unsigned int other_worker_index = (worker_index + i) % thread_count;
                 {
                     std::lock_guard<std::mutex> other_lock(mutexes[other_worker_index]);
-                    if (task_queues[other_worker_index].size() <= (workers_idle.find(other_worker_index) != workers_idle.end() ? 1 : 0))
+                    if (task_queues[other_worker_index].size() <= is_worker_idle(other_worker_index) ? 1 : 0)
                         continue;
 #ifdef DEBUG
                     std::cout << "[" << worker_index << "] stealing task from [" << other_worker_index << "]" << std::endl;
 #endif
                     // steal task
-                    std::shared_ptr<task_t> task = std::move(task_queues[other_worker_index].front());
+                    std::shared_ptr<task_t> task = task_queues[other_worker_index].front();
                     task_queues[other_worker_index].pop();
                     return task;
                 }
@@ -137,14 +144,23 @@ namespace threading {
                         if (task_queues[worker_index].size() == 0) {
                             {
                                 std::lock_guard<std::mutex> wait_lock(wait_mutex);
-                                workers_idle.insert(worker_index);
+                                {
+                                    std::lock_guard<std::shared_mutex> workers_idle_lock(workers_idle_mutex);
+                                    workers_idle.insert(worker_index);
+                                }
                                 wait_notifier.notify_all(); // tell waiters to evaluate task queues
                             }
 #ifdef DEBUG
                             std::cout << "[" << worker_index << "] idle" << std::endl;
 #endif
                             task_notifiers[worker_index].wait(thread_lock);
-                            workers_idle.erase(worker_index);
+#ifdef DEBUG
+                            std::cout << "[" << worker_index << "] unleashed" << std::endl;
+#endif
+                            {
+                                std::lock_guard<std::shared_mutex> workers_idle_lock(workers_idle_mutex);
+                                workers_idle.erase(worker_index);
+                            }
                             if (task_queues[worker_index].size() == 0) {
                                 thread_lock.unlock();
                                 continue; // stolen by other thread
@@ -224,15 +240,19 @@ namespace threading {
                 std::cout << "destruct threads..." << std::endl;
 #endif
                 destruct.store(true);
-                for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++)
+                for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++) {
+                    std::lock_guard<std::mutex> worker_lock(mutexes[worker_index]);
                     task_notifiers[worker_index].notify_all();
+#ifdef DEBUG
+                    std::cout << " > [" << worker_index << "] notified" << std::endl;
+#endif
+                }
 
 #ifdef DEBUG
                 std::cout << "join threads..." << std::endl;
 #endif
                 for (worker_t &worker: workers)
                     worker.thread.join();
-
                 workers.clear();
 #ifdef DEBUG
                 std::cout << "d'tor completed" << std::endl;
@@ -240,7 +260,7 @@ namespace threading {
             }
 
             std::shared_ptr<task_t> add(const std::function<void (const std::function<bool (const std::shared_ptr<task_t> &)> &)> task) {
-                std::shared_ptr<task_t> temp = std::make_shared<task_t>(task_t{task_status::pending, std::move(task)});
+                std::shared_ptr<task_t> temp = std::make_shared<task_t>(task_t{task_status::pending, task});
 
                 // TODO: only perform this if add() is called by thread_pool's internal threads
                 //~ if (active_threads.load() == threads.size()) {
@@ -252,7 +272,7 @@ namespace threading {
                 // TODO: begin with locating empty task queue, else perform logic below
                 unsigned int next_index = next_worker_index.fetch_add(1) % thread_count;
                 {
-                    std::lock_guard<std::mutex> global_lock(mutexes[next_index]);
+                    std::lock_guard<std::mutex> worker_lock(mutexes[next_index]);
                     task_queues[next_index].push(temp);
                     task_notifiers[next_index].notify_one();
 #ifdef DEBUG
@@ -295,7 +315,7 @@ namespace threading {
 
             bool all_tasks_idle() {
                 for (unsigned int worker_index = 0; worker_index < thread_count; worker_index++) {
-                    if (workers_idle.find(worker_index) != workers_idle.end()) { // TODO: is this check thread safe?
+                    if (is_worker_idle(worker_index)) {
                         std::lock_guard<std::mutex> worker_lock(mutexes[worker_index]);
                         if (task_queues[worker_index].size() == 0)
                             continue;

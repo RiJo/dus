@@ -5,7 +5,6 @@
 // TODO: add tests for all different task_status'es
 // TODO: add performance/benchmark tests with comparison: "normal thread" vs "thread_pool(1)" vs "thread_pool(x)"
 
-
 void test_ctor_invalid_thread_count() {
     unit::assert_throws([]() { threading::thread_pool tp(0); }, "c'tor with zero threads");
 }
@@ -32,21 +31,21 @@ void test_thread_throws_exception() {
 }
 
 void test_dtor_abort_tasks_in_queue() {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    const auto start_time = std::chrono::high_resolution_clock::now();
     {
         threading::thread_pool tp(3);
-        std::atomic_uint counter {0};
-        for (uint i = 0; i < 20; i++) {
-            tp.add([&counter](const std::function<bool (const std::shared_ptr<threading::task_t> &)> &) {
+        for (unsigned int i = 0; i < 100; i++) {
+            tp.add([](const std::function<bool (const std::shared_ptr<threading::task_t> &)> &) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             });
+            std::this_thread::yield();
         }
     }
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
+    const auto end_time = std::chrono::high_resolution_clock::now();
 
-    unit::assert_true(elapsed_time.count() > 100.0, "d'tor took at least 100ms");
-    unit::assert_true(elapsed_time.count() < 200.0, "d'tor took at most 100ms");
+    std::chrono::duration<double, std::milli> elapsed_time = end_time - start_time;
+    unit::assert_true(elapsed_time.count() >= 100.0, "d'tor took at least 100ms: " + std::to_string(elapsed_time.count()) + "ms");
+    unit::assert_true(elapsed_time.count() < 500.0, "d'tor took at most 500ms: " + std::to_string(elapsed_time.count()) + "ms");
 }
 
 
