@@ -34,7 +34,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(BIN_DIR)/$(PROGRAM)
 .PHONY: uninstall
 
-unit-test: test/test.cpp test/unit.hpp test/test_unit.hpp test/test_thread_pool.hpp $(HEADERS)
+unit-test: test/test.cpp test/unit.hpp test/test_unit.hpp test/test_fs.hpp test/test_thread_pool.hpp $(HEADERS)
 	@$(CXX) $(CXXFLAGS) -Itest -Isrc $< -o $@
 	@./$@
 
