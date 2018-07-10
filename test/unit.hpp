@@ -87,7 +87,11 @@ namespace unit {
             }
 
             std::string to_string() const {
-                std::string s {name};
+                std::string s {""};
+
+                s += std::string(80, '=') + "\n";
+                s += " " + name + "\n";
+                s += std::string(80, '-') + "\n";
 
                 s += "\n";
                 size_t passed = 0;
