@@ -131,8 +131,8 @@ namespace unit {
         assert("no assertion");
     }
 
-    template<typename T>
-    void assert_equals(const T expected, const T actual, const std::string &message) {
+    template<typename X, typename Y>
+    void assert_equals(const X expected, const Y actual, const std::string &message) {
         if (expected != actual) {
             std::stringstream ss;
             ss << message << " -- expected: [" << expected << "], actual: [" << actual << "]";

@@ -342,4 +342,19 @@ namespace threading {
     };
 }
 
+std::ostream& operator<< (std::ostream& os, const threading::task_status &e) {
+    auto value = static_cast<std::underlying_type<threading::task_status>::type>(e);
+    std::string name {};
+    switch (e) {
+        case threading::task_status::pending: name = "pending"; break;
+        case threading::task_status::in_progress: name = "in_progress"; break;
+        case threading::task_status::done: name = "done"; break;
+        case threading::task_status::failed: name = "failed"; break;
+        case threading::task_status::aborted: name = "aborted"; break;
+        default: throw std::runtime_error("unhandled enum value: " + std::to_string(value));
+    }
+    os << "threading::" << name << "(" << value << ")";
+    return os;
+}
+
 #endif //__THREAD_POOL_HPP_INCLUDED__

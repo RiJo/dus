@@ -27,7 +27,7 @@ void test_thread_throws_exception() {
     threading::thread_pool tp(1);
     std::shared_ptr<threading::task_t> task = tp.add([](const std::function<bool (const std::shared_ptr<threading::task_t> &)> &) { throw new std::runtime_error("exception within thread"); });
     tp.wait();
-    unit::assert_true(threading::task_status::failed == task->status, "finished task status");
+    unit::assert_equals(threading::task_status::failed, task->status, "status of finished task");
 }
 
 void test_dtor_abort_tasks_in_queue() {
