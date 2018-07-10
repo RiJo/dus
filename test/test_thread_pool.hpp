@@ -6,7 +6,7 @@
 // TODO: add performance/benchmark tests with comparison: "normal thread" vs "thread_pool(1)" vs "thread_pool(x)"
 
 void test_ctor_invalid_thread_count() {
-    unit::assert_throws([]() { threading::thread_pool tp(0); }, "c'tor with zero threads");
+    unit::assert_throws(std::runtime_error(""), []() { threading::thread_pool tp(0); }, "c'tor with zero threads");
 }
 
 void test_threads_join() {

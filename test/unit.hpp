@@ -136,7 +136,7 @@ namespace unit {
         if (expected != actual) {
             std::stringstream ss;
             ss << message << " -- expected: [" << expected << "], actual: [" << actual << "]";
-            throw assertion_error(ss.str());
+            assert(ss.str());
         }
     }
 
@@ -148,14 +148,22 @@ namespace unit {
         assert_equals(false, actual, message);
     }
 
-    void assert_throws(const std::function<void ()> action, const std::string &message) {
+    template<typename T>
+    void assert_throws(const T &expected, const std::function<void ()> action, const std::string &message) {
+        std::stringstream ss;
         try {
             action();
         }
-        catch (...) {
+        catch (decltype(expected) e) {
             return;
         }
-        assert(message);
+        catch (...) {
+            ss << message << " -- expected: [" << typeid(expected).name() << "], actual: [" << typeid(std::current_exception()).name() << "]";
+            assert(ss.str());
+        }
+
+        ss << message << " -- expected: [" << typeid(expected).name() << "], actual: <none>";
+        assert(ss.str());
     }
 }
 

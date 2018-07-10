@@ -41,12 +41,18 @@ void test_assert_equals_fail() {
 }
 
 void test_assert_throws_pass() {
-    unit::assert_throws([]() { throw std::runtime_error("message"); }, "assert_throws(throw)");
+    unit::assert_throws(std::string{}, []() { throw std::string("message"); }, "assert_throws(throw)");
 }
 
 void test_assert_throws_fail() {
     unit::assert_invert([]() {
-        unit::assert_throws([]() {}, "assert_throws(nop)");
+        unit::assert_throws(std::string{}, []() {}, "assert_throws(nop)");
+    });
+}
+
+void test_assert_throws_wrong() {
+    unit::assert_invert([]() {
+        unit::assert_throws(std::string{}, []() { throw std::runtime_error("test"); }, "assert_throws(wrong)");
     });
 }
 
@@ -77,6 +83,7 @@ unit::test_suite get_suite_unit() {
     suite.add_test(test_assert_equals_fail, "test_assert_equals_fail");
     suite.add_test(test_assert_throws_pass, "test_assert_throws_pass");
     suite.add_test(test_assert_throws_fail, "test_assert_throws_fail");
+    suite.add_test(test_assert_throws_wrong, "test_assert_throws_wrong");
     suite.add_test(test_count_failures_zero, "test_count_failures_zero");
     suite.add_test(test_count_failures_nonzero, "test_count_failures_nonzero");
     return suite;
