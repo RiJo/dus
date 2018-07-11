@@ -87,30 +87,35 @@ namespace unit {
             }
 
             std::string to_string() const {
-                std::string s {""};
+                std::stringstream ss {""};
 
-                s += std::string(80, '=') + "\n";
-                s += " " + name + "\n";
-                s += std::string(80, '-') + "\n";
+                ss << std::string(80, '=') << std::endl;
+                ss << " " + name << std::endl;
+                ss << std::string(80, '-') << std::endl;
+                ss << std::endl;
 
-                s += "\n";
-                size_t passed = 0;
-                for (size_t i = 0; i < reports.size(); i++) {
-                    const test_report report = reports.at(i);
-                    s += "    #" + std::to_string(i + 1) + " " + report.to_string() + "\n";
+                if (reports.size() > 0) {
+                    size_t passed = 0;
+                    for (size_t i = 0; i < reports.size(); i++) {
+                        const test_report report = reports.at(i);
+                        ss << "    #" << (i + 1) << " " << report.to_string() << std::endl;
 
-                    if (report.result == test_result::PASS)
-                        passed++;
+                        if (report.result == test_result::PASS)
+                            passed++;
+                    }
+
+                    ss << std::endl;
+                    if (passed == reports.size())
+                        ss << "  " << console::color::green << "All tests passed!" << console::color::reset;
+                    else
+                        ss << "  " << console::color::red << passed << "/" << reports.size() << " tests passed.." << console::color::reset;
                 }
+                else {
+                    ss << "  " << console::color::blue << "No tests in suite" << console::color::reset << " :(";
+                }
+                ss << std::endl;
 
-                s += "\n";
-                if (passed == reports.size())
-                    s += "  " + console::color::green() + "All tests passed!" + console::color::reset();
-                else
-                    s += "  " + console::color::red() + std::to_string(passed) + "/" + std::to_string(reports.size()) + " tests passed.." + console::color::reset();
-                s += "\n";
-
-                return s;
+                return ss.str();
             }
     };
 
