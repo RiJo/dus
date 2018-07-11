@@ -1,5 +1,6 @@
 #include "unit.hpp"
 #include "test_unit.hpp"
+#include "test_console.hpp"
 #include "test_fs.hpp"
 #include "test_thread_pool.hpp"
 
@@ -8,6 +9,11 @@ int main(int, const char **) {
     unit::test_suite suite_unit = get_suite_unit();
     suite_unit.execute();
     std::cout << suite_unit.to_string() << std::endl;
+
+    // console.hpp
+    unit::test_suite suite_console = get_suite_console();
+    suite_console.execute();
+    std::cout << suite_console.to_string() << std::endl;
 
     // fs.hpp
     unit::test_suite suite_fs = get_suite_fs();
@@ -19,6 +25,6 @@ int main(int, const char **) {
     suite_thread_pool.execute();
     std::cout << suite_thread_pool.to_string() << std::endl;
 
-    return suite_unit.count_failure() + suite_fs.count_failure() + suite_thread_pool.count_failure();
+    return suite_unit.count_failure() + suite_console.count_failure() + suite_fs.count_failure() + suite_thread_pool.count_failure();
 }
 
