@@ -1,7 +1,19 @@
 #include "unit.hpp"
 
 void test_assert_invert_pass() {
-    unit::assert_invert([]() { throw unit::assertion_error("ignored"); });
+    unit::assert_invert([]() { throw unit::assertion_error(""); });
+}
+
+void test_assert_invert_fail() {
+    unit::assert_invert([]() {
+        unit::assert_invert([]() { });
+    });
+}
+
+void test_assert_invert_exception() {
+    unit::assert_invert([]() {
+        unit::assert_invert([]() { throw std::runtime_error(""); });
+    });
 }
 
 void test_assert_pass() {
@@ -74,6 +86,8 @@ void test_count_failures_nonzero() {
 unit::test_suite get_suite_unit() {
     unit::test_suite suite("unit.hpp");
     suite.add_test(test_assert_invert_pass, "test_assert_invert_pass");
+    suite.add_test(test_assert_invert_fail, "test_assert_invert_fail");
+    suite.add_test(test_assert_invert_exception, "test_assert_invert_exception");
     suite.add_test(test_assert_pass, "test_assert_pass");
     suite.add_test(test_assert_true_pass, "test_assert_true_pass");
     suite.add_test(test_assert_true_fail, "test_assert_true_fail");
