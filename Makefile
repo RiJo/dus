@@ -35,6 +35,8 @@ uninstall:
 .PHONY: uninstall
 
 unit-test: test/test.cpp test/unit.hpp test/test_unit.hpp test/test_console.hpp test/test_fs.hpp test/test_thread_pool.hpp $(HEADERS)
-	@$(CXX) $(CXXFLAGS) -fmax-errors=1 -Itest -Isrc $< -o $@
-	@./$@
+	@$(CXX) $(CXXFLAGS) -fmax-errors=1 -g -Itest -Isrc $< -o $@
+
+test: unit-test
+	./$<
 
