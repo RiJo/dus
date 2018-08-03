@@ -170,6 +170,23 @@ namespace unit {
         ss << message << " -- expected: [" << typeid(expected).name() << "], actual: <none>";
         assert(ss.str());
     }
+
+    template<typename T, typename E, typename A>
+    void assert_container(const E &expected, const A &actual, const std::string &message,
+            const std::function<bool (const T&, const T&)> comparator = [](const T &e, const T &a) -> bool { return e == a; }) {
+        for (const T &a: expected) {
+            bool a_found = false;
+            for (const T &b: actual) {
+                a_found |= comparator(a, b);
+
+                bool b_found = false;
+                for (const T &c: expected)
+                    b_found |= comparator(c, b);
+                assert_true(b_found, "actual element not in expected collection -- " + message); // TODO: add missing value to message
+            }
+            assert_true(a_found, "expected element not in actual collection -- " + message); // TODO: add missing value to message
+        }
+    }
 }
 
 #endif //__UNIT_HPP_INCLUDED__

@@ -68,6 +68,24 @@ void test_assert_throws_wrong() {
     });
 }
 
+void test_assert_container_pass() {
+    std::vector<int> actual {0, 42, 100};
+    unit::assert_container<int>(std::initializer_list<int>{0, 42, 100}, actual, "assert_container({0, 42, 100}, {0, 42, 100})");
+}
+
+void test_assert_container_fail() {
+    unit::assert_invert([]() {
+        std::vector<int> actual {0, 42, 100};
+        unit::assert_container<int>(std::initializer_list<int>{0, 24, 100}, actual, "assert_container({0, 24, 100}, {0, 42, 100})");
+    });
+}
+
+void test_assert_container_comparator() {
+    std::vector<std::string> actual {"f", "b", "b"};
+    unit::assert_container<std::string>(std::initializer_list<std::string>{"foo", "bar", "baz"}, actual, "assert_container({\"foo\", \"bar\", \baz\"}, {\"f\", \"b\", \"b\"}, CMP)",
+            [](const std::string &x, const std::string &y) { return x[0] == y[0] ; });
+}
+
 void test_count_failures_zero() {
     unit::test_suite suite("test");
     suite.add_test([]() {});
@@ -98,6 +116,9 @@ unit::test_suite get_suite_unit() {
     suite.add_test(test_assert_throws_pass, "test_assert_throws_pass");
     suite.add_test(test_assert_throws_fail, "test_assert_throws_fail");
     suite.add_test(test_assert_throws_wrong, "test_assert_throws_wrong");
+    suite.add_test(test_assert_container_pass, "test_assert_container_pass");
+    suite.add_test(test_assert_container_fail, "test_assert_container_fail");
+    suite.add_test(test_assert_container_comparator, "test_assert_container_comparator");
     suite.add_test(test_count_failures_zero, "test_count_failures_zero");
     suite.add_test(test_count_failures_nonzero, "test_count_failures_nonzero");
     return suite;
