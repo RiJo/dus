@@ -4,40 +4,44 @@
 #include <string.h> // strncpy()
 
 void verify_parse_args(std::vector<std::string> args, std::function<void (const std::vector<console::arg_t>)> verifier) {
-    std::cout << " args: " << args.size() << std::endl;
     char** c_args = new char*[args.size() + 1];
     for (unsigned int i = 0; i < args.size(); i++) {
-        c_args[i] = (char*)malloc(args.at(i).size() + 1);
+        char *ptr = (char *)malloc(args.at(i).size() + 1);
+        if (ptr == nullptr)
+            throw std::runtime_error("failed to allocate memory");
+        c_args[i] = ptr;
         strncpy(c_args[i], args.at(i).c_str(), args.at(i).size());
+        c_args[i][args.at(i).size()] = '\0';
     }
-    c_args[args.size() + 1] = nullptr;
+    c_args[args.size()] = nullptr;
 
     const std::vector<console::arg_t> parsed = console::parse_args(args.size(), (const char**)c_args);
-    std::cout << " parsed: " << parsed.size() << std::endl;
     verifier(parsed);
+
+    for (unsigned int i = 0; i < args.size(); i++)
+        free(c_args[i]);
+    free(c_args);
+}
+
+bool compare_args(const console::arg_t &x, const console::arg_t &y) {
+    return x.key == y.key && x.value == y.value && x.next == y.next;
 }
 
 void test_parse_args_none() {
     verify_parse_args(std::vector<std::string>{ }, [](const std::vector<console::arg_t> parsed) {
-        unit::assert_equals((size_t)0, parsed.size(), "number of parsed arguments");
+        unit::assert_container<console::arg_t>(std::initializer_list<console::arg_t>{}, parsed, "parsed arguments", compare_args);
     });
 }
 
 void test_parse_args_single_flag() {
     verify_parse_args({ "/tmp/test_console", "-x" }, [](const std::vector<console::arg_t> parsed) {
-        unit::assert_equals((size_t)1, parsed.size(), "number of parsed arguments");
-        unit::assert_equals("-x", parsed.at(0).key, "key");
-        unit::assert_equals("", parsed.at(0).value, "value");
-        /* unit::assert_equals(0, parsed.at(0).next, "next"); */
+        unit::assert_container<console::arg_t>(std::initializer_list<console::arg_t>{ console::arg_t{"-x", "", nullptr} }, parsed, "parsed arguments", compare_args);
     });
 }
 
 void test_parse_args_long_variable() {
     verify_parse_args({ "/tmp/test_console", "--foo=bar" }, [](const std::vector<console::arg_t> parsed) {
-        unit::assert_equals((size_t)1, parsed.size(), "number of parsed arguments");
-        unit::assert_equals("--foo", parsed.at(0).key, "key");
-        unit::assert_equals("bar", parsed.at(0).value, "value");
-        /* unit::assert_equals(0, parsed.at(0).next, "next"); */
+        unit::assert_container<console::arg_t>(std::initializer_list<console::arg_t>{ console::arg_t{"--foo", "bar", nullptr} }, parsed, "parsed arguments", compare_args);
     });
 }
 
