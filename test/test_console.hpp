@@ -33,9 +33,29 @@ void test_parse_args_none() {
     });
 }
 
-void test_parse_args_single_flag() {
+void test_parse_args_short_single_flag() {
     verify_parse_args({ "/tmp/test_console", "-x" }, [](const std::vector<console::arg_t> parsed) {
         unit::assert_container<console::arg_t>(std::initializer_list<console::arg_t>{ console::arg_t{"-x", "", nullptr} }, parsed, "parsed arguments", compare_args);
+    });
+}
+
+void test_parse_args_short_multiple_flags() {
+    verify_parse_args({ "/tmp/test_console", "-x", "-yz" }, [](const std::vector<console::arg_t> parsed) {
+        unit::assert_container<console::arg_t>(std::initializer_list<console::arg_t>{
+                console::arg_t{"-x", "", nullptr},
+                console::arg_t{"-y", "", nullptr},
+                console::arg_t{"-z", "", nullptr}
+        }, parsed, "parsed arguments", compare_args);
+    });
+}
+
+void test_parse_args_dash() {
+    verify_parse_args({ "/tmp/test_console", "--x", "-", "-y" }, [](const std::vector<console::arg_t> parsed) {
+        unit::assert_container<console::arg_t>(std::initializer_list<console::arg_t>{
+                console::arg_t{"--x", "", nullptr},
+                console::arg_t{"-", "", nullptr},
+                console::arg_t{"-y", "", nullptr}
+        }, parsed, "parsed arguments", compare_args);
     });
 }
 
@@ -48,7 +68,9 @@ void test_parse_args_long_variable() {
 unit::test_suite get_suite_console() {
     unit::test_suite suite("console.hpp");
     suite.add_test(test_parse_args_none, "test_parse_args_none");
-    suite.add_test(test_parse_args_single_flag, "test_parse_args_single_flag");
+    suite.add_test(test_parse_args_short_single_flag, "test_parse_args_short_single_flag");
+    suite.add_test(test_parse_args_short_multiple_flags, "test_parse_args_short_multiple_flags");
+    suite.add_test(test_parse_args_dash, "test_parse_args_dash");
     suite.add_test(test_parse_args_long_variable, "test_parse_args_long_variable");
     return suite;
 }
