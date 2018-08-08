@@ -26,10 +26,12 @@ namespace unit {
             const test_result result;
             const std::string message;
 
-            std::string to_string() const {
+            std::string to_string(const bool verbose) const {
                 switch (result) {
                     case test_result::PASS:
-                        return console::color::green() + "PASS" + console::color::reset() + (description.size() > 0 ? " -- " + description : "");
+                        if (verbose)
+                            return console::color::green() + "PASS" + console::color::reset() + (description.size() > 0 ? " -- " + description : "");
+                        break;
                     case test_result::FAIL:
                         return console::color::red() + "FAIL" + console::color::reset() + (description.size() > 0 ? " -- " + description : "") +  (message.size() > 0 ? " -- " + message : "");
                     case test_result::EXCEPTION:
@@ -37,6 +39,7 @@ namespace unit {
                     default:
                         throw std::runtime_error("unhandled test report result");
                 }
+                return "";
             }
     };
 
@@ -86,22 +89,29 @@ namespace unit {
                 return count;
             }
 
-            std::string to_string() const {
+            std::string to_string(const bool verbose) const {
                 std::stringstream ss {""};
 
                 ss << std::string(80, '=') << std::endl;
                 ss << " " + name << std::endl;
                 ss << std::string(80, '-') << std::endl;
-                ss << std::endl;
 
+                bool any_report_printed {false};
                 if (reports.size() > 0) {
                     size_t passed = 0;
                     for (size_t i = 0; i < reports.size(); i++) {
                         const test_report report = reports.at(i);
-                        ss << "    #" << (i + 1) << " " << report.to_string() << std::endl;
-
                         if (report.result == test_result::PASS)
                             passed++;
+
+                        const std::string test_report_string = report.to_string(verbose);
+                        if (test_report_string.length() == 0)
+                            continue;
+                        if (!any_report_printed) {
+                            any_report_printed = true;
+                            ss << std::endl;
+                        }
+                        ss << "    #" << (i + 1) << " " << report.to_string(verbose) << std::endl;
                     }
 
                     ss << std::endl;
