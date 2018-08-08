@@ -77,9 +77,9 @@ namespace fs {
         if (pos_last_backslash == std::string::npos)
             return path; // No slashes
         if (pos_last_backslash == path.length() - 1)
-            return dirname(path.substr(0, pos_last_backslash)); // Skip trailing slash
+            return path.substr(0, pos_last_backslash); // Skip trailing slash
 
-        return path.substr(0, pos_last_backslash);
+        return path.substr(0, pos_last_backslash); // Remove basename
     }
 
     std::string basename(const std::string &path) {
@@ -87,7 +87,7 @@ namespace fs {
         if (pos_last_backslash == std::string::npos)
             return path; // No slashes
         if (pos_last_backslash == path.length() - 1)
-            return basename(path.substr(0, pos_last_backslash)); // Skip trailing slash
+            return ""; // No basename
 
         return path.substr(pos_last_backslash + 1);
     }

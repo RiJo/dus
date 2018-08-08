@@ -2,7 +2,7 @@
 #include "fs.hpp"
 
 void test_dirname_null() {
-    unit::assert_throws(std::runtime_error(""), []() { fs::dirname(nullptr); }, "dirname(nullptr)");
+    unit::assert_throws(std::exception(), []() { fs::dirname(nullptr); }, "dirname(nullptr)");
 }
 
 void test_dirname_empty_string() {
@@ -26,7 +26,7 @@ void test_dirname_no_ending_slash() {
 }
 
 void test_basename_null() {
-    unit::assert_throws(std::runtime_error(""), []() { fs::basename(nullptr); }, "basename(nullptr)");
+    unit::assert_throws(std::exception(), []() { fs::basename(nullptr); }, "basename(nullptr)");
 }
 
 void test_basename_empty_string() {
