@@ -334,11 +334,11 @@ int main(int argc, const char *argv[]) {
         std::stringstream temp;
         temp.imbue(locale);
         if (human_readable && file.length >= 1024) {
-            if (file.length >= ce_pow(1024, 3))
+            if (file.length >= ce_pow(1024ul, 3))
                 temp << file.length / ce_pow(1024, 3);
-            else if (file.length >= ce_pow(1024, 2))
+            else if (file.length >= ce_pow(1024ul, 2))
                 temp << file.length / ce_pow(1024, 2);
-            else if (file.length >= 1024)
+            else if (file.length >= 1024ul)
                 temp << file.length / 1024;
         }
         else
@@ -379,11 +379,11 @@ int main(int argc, const char *argv[]) {
         temp.imbue(locale);
         if (human_readable) {
             temp << std::setw(size_width - 1);  // only the number part
-            if (file.length >= ce_pow(1024, 3))
+            if (file.length >= ce_pow(1024ul, 3))
                 temp << file.length / ce_pow(1024, 3) << "G";
-            else if (file.length >= ce_pow(1024, 2))
+            else if (file.length >= ce_pow(1024ul, 2))
                 temp << file.length / ce_pow(1024, 2) << "M";
-            else if (file.length >= 1024)
+            else if (file.length >= 1024ul)
                 temp << file.length / 1024 << "K";
             else
                 temp << file.length << " ";
